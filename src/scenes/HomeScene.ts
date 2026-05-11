@@ -89,9 +89,11 @@ export class HomeScene extends Phaser.Scene {
     // mix-blend-mode 'screen', opacity 0.45 no JSX).
     const rays = this.add.graphics().setDepth(-95);
     const rayColor = 0xfff7c0;
-    // JSX opacity 0.45 com mix-blend screen — sem screen no Phaser, baixamos
-    // alpha para 0.15 base pra não estourar a tela.
-    const rayBase = 0.15;
+    // JSX outer opacity 0.45 com mix-blend screen — sem screen no Phaser, baixamos
+    // o alpha base para 0.20. Mantém proporções entre polígonos (1.0, 0.6, 0.4)
+    // e simula gradiente top→bottom desenhando 2 polígonos (full + bottom-half
+    //  ao topo) para esmaecer em direção ao chão.
+    const rayBase = 0.20;
     const rayPolys: Array<{ pts: number[]; a: number }> = [
       { pts: [0, 0, 240, 0, 380, 540, 100, 540], a: 1.0 },
       { pts: [120, 0, 280, 0, 460, 540, 280, 540], a: 0.6 },
@@ -104,6 +106,16 @@ export class HomeScene extends Phaser.Scene {
       for (let i = 2; i < r.pts.length; i += 2) rays.lineTo(r.pts[i], r.pts[i + 1]);
       rays.closePath();
       rays.fillPath();
+    }
+    // Mask escura para esmaecer a metade inferior dos rays (emula gradient
+    // stopOpacity 0.85 → 0 do JSX).
+    const rayFade = this.add.graphics().setDepth(-94);
+    rayFade.fillStyle(0x000000, 0);
+    for (let i = 0; i < 8; i++) {
+      const yTop = 270 + i * 35;
+      const alpha = i * 0.015; // 0 → 0.105
+      rayFade.fillStyle(0x1a1d2e, alpha);
+      rayFade.fillRect(0, yTop, 720, 35);
     }
 
     // Sun glow (.sun-glow: top:-120 left:-120 480x480 radial-gradient).
@@ -133,11 +145,12 @@ export class HomeScene extends Phaser.Scene {
     this.drawCloud(380 + 110, 90 + 18, 220, 36, 0.85);
     this.drawCloud(W - 320 - 90, 160 + 16, 180, 32, 0.7);
 
-    // Distant mountain ridge (azul-cinza com pico, opacity 0.7).
+    // Distant mountain ridge — JSX `bottom:220, height:240` no stage 720px →
+    // SVG top em y=720-220-240=260. Cada path y é offset desse topo.
     const farMtn = this.add.graphics().setDepth(-80);
     farMtn.lineStyle(3.5, 0x1a1d2e, 1);
     farMtn.fillStyle(0x3a5a78, 0.7);
-    const farMtnY = H - 220;
+    const farMtnY = H - 220 - 240; // 260
     const farPts = [0, 200, 80, 80, 140, 130, 230, 30, 330, 110, 430, 60, 540, 130, 640, 40, 760, 120, 870, 70, 980, 130, 1080, 60, 1180, 120, 1280, 90, 1280, 240, 0, 240];
     farMtn.beginPath();
     farMtn.moveTo(farPts[0], farMtnY + farPts[1]);
@@ -146,16 +159,16 @@ export class HomeScene extends Phaser.Scene {
     farMtn.fillPath();
     farMtn.strokePath();
 
-    // Atmospheric fog band — linear-gradient horizontal fade.
+    // Atmospheric fog band — JSX `bottom:280, height:110` → top em y=330.
     const fogGfx = this.add.graphics().setDepth(-78);
     fogGfx.fillStyle(0xb4d2dc, 0.25);
-    fogGfx.fillRect(0, H - 280 - 55, W, 110);
+    fogGfx.fillRect(0, H - 280 - 110, W, 110);
 
-    // Mid mountain ridge — dark green com triângulo claro nos picos.
+    // Mid mountain ridge — JSX `bottom:180, height:200` → top em y=340.
     const midMtn = this.add.graphics().setDepth(-75);
     midMtn.lineStyle(4, 0x1a1d2e, 1);
     midMtn.fillStyle(0x2d5a32, 1);
-    const midMtnY = H - 180;
+    const midMtnY = H - 180 - 200; // 340
     const midPts = [0, 180, 60, 100, 130, 150, 230, 60, 330, 130, 440, 90, 560, 150, 680, 70, 800, 140, 920, 80, 1040, 140, 1160, 90, 1280, 130, 1280, 200, 0, 200];
     midMtn.beginPath();
     midMtn.moveTo(midPts[0], midMtnY + midPts[1]);
@@ -168,11 +181,11 @@ export class HomeScene extends Phaser.Scene {
     midMtn.fillTriangle(230, midMtnY + 60, 200, midMtnY + 110, 260, midMtnY + 110);
     midMtn.fillTriangle(680, midMtnY + 70, 650, midMtnY + 120, 710, midMtnY + 120);
 
-    // Rolling hills (curva bezier amostrada).
+    // Rolling hills — JSX `bottom:100, height:180` → top em y=440.
     const hills = this.add.graphics().setDepth(-70);
     hills.lineStyle(4, 0x1a1d2e, 1);
     hills.fillStyle(0x3d6b32, 1);
-    const hillsY = H - 100;
+    const hillsY = H - 100 - 180; // 440
     const hillsPath = this.sampleBezier(
       [0, hillsY + 130],
       [200, hillsY + 50, 400, hillsY + 170, 640, hillsY + 90],
@@ -534,13 +547,13 @@ export class HomeScene extends Phaser.Scene {
       stroke: hex(dark),
       strokeThickness: 6
     };
-    // Face frontal: emula gradient #ffffff→#fff8dc→#ffe98a com tom amarelo-creme
-    // claro (#ffe98a é o stop final — mais dourado que cream puro).
+    // Face frontal — aproxima gradient #ffffff→#fff8dc→#ffe98a com #fff8dc
+    // (stop intermediário, cream claro). Stroke #1a1d2e width 6.
     const styleFront: Phaser.Types.GameObjects.Text.TextStyle = {
       fontFamily: "'Fredoka', 'Baloo 2', sans-serif",
       fontSize: '130px',
       fontStyle: '700',
-      color: hex(0xfff0a8),
+      color: hex(0xfff8dc),
       stroke: hex(dark),
       strokeThickness: 6
     };
@@ -807,10 +820,6 @@ export class HomeScene extends Phaser.Scene {
   private buildDailyBadge(rightEdge: number, topY: number, today: string): void {
     const c = this.add.container(0, topY).setDepth(21);
 
-    const gift = this.textures.exists('icon-gift')
-      ? this.add.image(0, 0, 'icon-gift').setDisplaySize(28, 28)
-      : null;
-
     const label = this.add.text(0, 0, 'DAILY!', {
       fontFamily: "'Fredoka', sans-serif",
       fontSize: '16px',
@@ -826,26 +835,50 @@ export class HomeScene extends Phaser.Scene {
     const padY = 6;
     const iconBoxW = 28;
     const gap = 8;
-    const pillH = 28 + padY * 2; // 40
+    const pillH = 28 + padY * 2; // 40 — radius = 20 (= pill perfeito)
     const pillW = padLeft + iconBoxW + gap + label.width + padRight;
+    const radius = pillH / 2;
 
     const bg = this.add.graphics();
-    // Glow externo coral.
-    bg.fillStyle(Colors.accent.coral, 0.55);
-    bg.fillRoundedRect(-8, -8, pillW + 16, pillH + 16, (pillH + 16) / 2);
+    // Glow externo coral (suave, longe da borda).
+    bg.fillStyle(Colors.accent.coral, 0.3);
+    bg.fillRoundedRect(-6, -6, pillW + 12, pillH + 12, radius + 6);
     // Sombra plana inferior (coralDark).
     bg.fillStyle(Colors.accent.coralDark, 1);
-    bg.fillRoundedRect(0, 4, pillW, pillH, pillH / 2);
+    bg.fillRoundedRect(0, 4, pillW, pillH, radius);
     // Body coral.
     bg.fillStyle(Colors.accent.coral, 1);
-    bg.fillRoundedRect(0, 0, pillW, pillH, pillH / 2);
+    bg.fillRoundedRect(0, 0, pillW, pillH, radius);
     // Borda dark 2.5px.
     bg.lineStyle(2.5, Colors.bg.primary, 1);
-    bg.strokeRoundedRect(0, 0, pillW, pillH, pillH / 2);
+    bg.strokeRoundedRect(0, 0, pillW, pillH, radius);
     c.add(bg);
 
-    if (gift) {
-      gift.setPosition(padLeft + iconBoxW / 2, pillH / 2);
+    // Gift icon — SVG preferido, fallback desenhado em Phaser (presente
+    // estilizado: caixa branca com listra vertical + laço no topo).
+    if (this.textures.exists('icon-gift')) {
+      const gift = this.add.image(padLeft + iconBoxW / 2, pillH / 2, 'icon-gift')
+        .setDisplaySize(28, 28);
+      c.add(gift);
+    } else {
+      const gx = padLeft + iconBoxW / 2;
+      const gy = pillH / 2;
+      const gift = this.add.graphics();
+      // Caixa branca.
+      gift.fillStyle(0xffffff, 1);
+      gift.lineStyle(2, Colors.bg.primary, 1);
+      gift.fillRoundedRect(gx - 10, gy - 6, 20, 14, 2);
+      gift.strokeRoundedRect(gx - 10, gy - 6, 20, 14, 2);
+      // Listra coral vertical.
+      gift.fillStyle(Colors.accent.coral, 1);
+      gift.fillRect(gx - 2, gy - 6, 4, 14);
+      // Laço — 2 triângulos.
+      gift.fillStyle(Colors.accent.coral, 1);
+      gift.fillTriangle(gx, gy - 6, gx - 5, gy - 12, gx, gy - 8);
+      gift.fillTriangle(gx, gy - 6, gx + 5, gy - 12, gx, gy - 8);
+      gift.lineStyle(1.5, Colors.bg.primary, 1);
+      gift.strokeTriangle(gx, gy - 6, gx - 5, gy - 12, gx, gy - 8);
+      gift.strokeTriangle(gx, gy - 6, gx + 5, gy - 12, gx, gy - 8);
       c.add(gift);
     }
     label.setPosition(padLeft + iconBoxW + gap, pillH / 2);
@@ -1003,16 +1036,19 @@ export class HomeScene extends Phaser.Scene {
       const bg = this.add.graphics();
 
       if (i === 0) {
-        // Filled-rare: cyan body + cyan glow + dark border + inner highlight.
-        bg.fillStyle(Colors.accent.cyan, 0.5);
-        bg.fillCircle(0, 0, slotSize / 2 + 14);
-        bg.fillStyle(Colors.accent.cyan, 0.35);
-        bg.fillCircle(0, 0, slotSize / 2 + 6);
+        // Filled-rare per .slot.filled-rare CSS:
+        //   • box-shadow 0 0 16px rgba(78,205,196,0.5) — glow APERTADO,
+        //     não a aura gigante. Renderizado como um único anel tight.
+        //   • border cyan 3px (#4ecdc4)
+        //   • box-shadow inset 0 3px 0 white 0.35 (highlight superior)
+        //   • sombra inferior 4px dark
+        bg.fillStyle(Colors.accent.cyan, 0.4);
+        bg.fillCircle(0, 0, slotSize / 2 + 5);
         bg.fillStyle(Colors.bg.primary, 1);
         bg.fillCircle(0, 4, slotSize / 2);
         bg.fillStyle(Colors.rarity.rare, 1);
         bg.fillCircle(0, 0, slotSize / 2);
-        bg.lineStyle(3, Colors.bg.primary, 1);
+        bg.lineStyle(3, Colors.accent.cyan, 1);
         bg.strokeCircle(0, 0, slotSize / 2);
         bg.fillStyle(0xffffff, 0.35);
         bg.fillEllipse(0, -slotSize / 2 + 8, slotSize - 16, 14);
@@ -1173,26 +1209,32 @@ export class HomeScene extends Phaser.Scene {
     drawBtn(false);
     btn.add(bg);
 
-    // play-icon — lime circle + white triangle (use icon-play SVG se preloadado).
-    let playIcon: Phaser.GameObjects.Image | Phaser.GameObjects.Graphics;
-    if (this.textures.exists('icon-play')) {
-      const img = this.add.image(0, 0, 'icon-play').setDisplaySize(56, 56);
-      playIcon = img;
-    } else {
-      const gI = this.add.graphics();
-      gI.fillStyle(Colors.accent.green, 1);
-      gI.fillCircle(0, 0, 28);
-      gI.lineStyle(4, Colors.bg.primary, 1);
-      gI.strokeCircle(0, 0, 28);
-      gI.fillStyle(0xffffff, 1);
-      gI.beginPath();
-      gI.moveTo(-10, -14);
-      gI.lineTo(14, 0);
-      gI.lineTo(-10, 14);
-      gI.closePath();
-      gI.fillPath();
-      playIcon = gI;
-    }
+    // play-icon — lime-green circle backdrop + white triangle (replicating
+    // .btn-play .play-icon CSS: 56×56 lime + #1a1d2e border + white ▶).
+    // Sempre desenhado em Phaser para não depender da textura SVG.
+    const iconR = 24; // raio do círculo (~48px de diâmetro)
+    const playIcon = this.add.container(0, 0);
+    const playBg = this.add.graphics();
+    // Drop shadow plana (filter feDropShadow do play.svg).
+    playBg.fillStyle(Colors.bg.primary, 0.6);
+    playBg.fillCircle(0, 3, iconR);
+    // Body lime green (#6bcb77).
+    playBg.fillStyle(Colors.accent.green, 1);
+    playBg.fillCircle(0, 0, iconR);
+    // Outline dark 3px.
+    playBg.lineStyle(3, Colors.bg.primary, 1);
+    playBg.strokeCircle(0, 0, iconR);
+    // Triangle ▶ — base 14px, altura 18px, ligeiramente offset à direita.
+    playBg.fillStyle(0xffffff, 1);
+    playBg.lineStyle(2.5, Colors.bg.primary, 1);
+    playBg.beginPath();
+    playBg.moveTo(-7, -11);
+    playBg.lineTo(11, 0);
+    playBg.lineTo(-7, 11);
+    playBg.closePath();
+    playBg.fillPath();
+    playBg.strokePath();
+    playIcon.add(playBg);
 
     // JSX usa "Play" mas CSS text-transform: uppercase → renderiza "PLAY".
     const label = this.add.text(0, 0, 'PLAY', {
@@ -1206,10 +1248,11 @@ export class HomeScene extends Phaser.Scene {
     label.setLetterSpacing?.(2.5);
 
     // Center icon+gap+label inside button.
+    const iconDiameter = iconR * 2;
     const contentGap = 16;
-    const contentW = 56 + contentGap + label.width;
-    playIcon.x = -contentW / 2 + 28;
-    label.x = -contentW / 2 + 56 + contentGap;
+    const contentW = iconDiameter + contentGap + label.width;
+    playIcon.x = -contentW / 2 + iconR;
+    label.x = -contentW / 2 + iconDiameter + contentGap;
     label.y = 0;
     btn.add(playIcon);
     btn.add(label);
@@ -1375,6 +1418,9 @@ export class HomeScene extends Phaser.Scene {
   /* ====================================================================== */
 
   private buildExtraButtons(): void {
+    // Dev-only: BOOST só aparece em build de desenvolvimento (import.meta.env.PROD
+    // é true em vite build, false em vite dev).
+    if (import.meta.env.PROD) return;
     if (!getServices().ads.isAdsRemoved()) {
       new Button3D({
         scene: this,
@@ -1397,6 +1443,8 @@ export class HomeScene extends Phaser.Scene {
   /* ====================================================================== */
 
   private buildDevButton(): void {
+    // Dev-only: DEV picker só aparece em build de desenvolvimento.
+    if (import.meta.env.PROD) return;
     new Button3D({
       scene: this,
       x: GAME_WIDTH - 80,
