@@ -7,7 +7,10 @@ import { Colors, hex } from '../theme/colors';
 import { SceneTransition } from '../ui/SceneTransition';
 import { randPick } from '../utils/MathUtils';
 
-const DESIGN_URL = '/designs/Float%20Home%20Screen.html';
+// Usa a versão standalone (single file ~1.3MB com React+Babel inline) em vez
+// da versão CDN — uma requisição HTTP só, sem dependências externas. Mais
+// rápido no primeiro load e funciona offline depois de cacheado.
+const DESIGN_URL = '/designs/Float%20Home%20Screen%20(standalone).html';
 const ROOT_ID = 'home-overlay-root';
 
 /**
@@ -33,6 +36,8 @@ export class HomeScene extends Phaser.Scene {
   private canvasObserver?: ResizeObserver;
   private iframeReady = false;
   private retryHandle?: number;
+  /** Id da última skin injetada — evita reescrever DOM em toda mudança de state. */
+  private lastInjectedSkin?: string;
 
   constructor() {
     super({ key: SCENES.HOME });
@@ -111,8 +116,8 @@ export class HomeScene extends Phaser.Scene {
   }
 
   private onIframeLoaded(): void {
-    // O HTML standalone carrega React+Babel via CDN e transpila o JSX no
-    // navegador — leva ~500-1500ms. Espero o .stage existir antes de amarrar.
+    // O HTML standalone tem React+Babel inline — Babel transpila o JSX no
+    // navegador, leva ~300-1000ms. Espero o .stage existir antes de amarrar.
     const start = performance.now();
     const tick = (): void => {
       const doc = this.iframeEl?.contentDocument;
@@ -121,6 +126,7 @@ export class HomeScene extends Phaser.Scene {
         this.iframeReady = true;
         this.wireIframeUI(doc);
         this.syncStateToIframe();
+        this.injectEquippedSkin();
         return;
       }
       if (performance.now() - start > 8000) {
@@ -181,7 +187,8 @@ export class HomeScene extends Phaser.Scene {
     }
   }
 
-  /** Atualiza os números (BEST distance, coins) escrevendo direto no DOM. */
+  /** Atualiza os números (BEST distance, coins) escrevendo direto no DOM.
+   *  Também re-injeta a skin se o id equipado mudou desde a última injeção. */
   private syncStateToIframe(): void {
     if (!this.iframeReady) return;
     const doc = this.iframeEl?.contentDocument;
@@ -210,6 +217,51 @@ export class HomeScene extends Phaser.Scene {
         }
       });
     }
+
+    // Re-injeta skin se mudou (evita rewrite do DOM em todo state change).
+    if (s.equippedSkin !== this.lastInjectedSkin) {
+      this.injectEquippedSkin();
+    }
+  }
+
+  /** Substitui o `<RockChar/>` (SVG hardcoded do design) pelo PNG da skin
+   *  atualmente equipada no GameState. Usa `textures.getBase64()` pra puxar
+   *  a textura do TextureManager do Phaser (que pode ser PNG real OU placeholder
+   *  gerado em runtime) como data URL. */
+  private injectEquippedSkin(): void {
+    const doc = this.iframeEl?.contentDocument;
+    if (!doc) return;
+
+    const skinId = this.state.get().equippedSkin;
+    const skinKey = `skin_${skinId}`;
+    let skinSrc: string | undefined;
+
+    const tryGet = (key: string): string | undefined => {
+      if (!this.textures.exists(key)) return undefined;
+      try {
+        return this.textures.getBase64(key);
+      } catch {
+        return undefined;
+      }
+    };
+
+    skinSrc = tryGet(skinKey) ?? tryGet('skin_rock');
+    if (!skinSrc) return;
+
+    // .bob > div (wrapper do RockChar com filter:drop-shadow). Mantém o wrapper
+    // e troca o conteúdo (SVG → img).
+    const bob = doc.querySelector('.bob');
+    const wrapper = bob?.firstElementChild as HTMLElement | null;
+    if (!wrapper) return;
+
+    while (wrapper.firstChild) wrapper.removeChild(wrapper.firstChild);
+    const img = doc.createElement('img');
+    img.src = skinSrc;
+    img.alt = skinId;
+    img.style.cssText = 'width:100%;height:100%;object-fit:contain;display:block;image-rendering:auto';
+    wrapper.appendChild(img);
+
+    this.lastInjectedSkin = skinId;
   }
 
   /* ====================================================================== */
@@ -462,5 +514,6 @@ export class HomeScene extends Phaser.Scene {
     }
     this.iframeEl = undefined;
     this.iframeReady = false;
+    this.lastInjectedSkin = undefined;
   }
 }
