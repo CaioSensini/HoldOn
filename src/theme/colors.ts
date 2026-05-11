@@ -14,7 +14,7 @@ export const Colors = {
     /** Azul-escuro médio — cards, modais, painéis. */
     secondary: 0x2a2f4a,
     /** Variante mais clara para layering. */
-    tertiary: 0x353b5c,
+    tertiary: 0x3a4060,
     /** Preto puro — overlays escuros (combinar com alpha). */
     overlay: 0x000000
   },
@@ -29,13 +29,13 @@ export const Colors = {
     coralDark: 0xc94545,
     /** Ciano — power-ups, progressão, secundário. */
     cyan: 0x4ecdc4,
-    cyanDark: 0x2ea29a,
+    cyanDark: 0x2ea49b,
     /** Roxo — lendárias, especiais. */
     purple: 0xa06cd5,
-    purpleDark: 0x7548ad,
+    purpleDark: 0x7344a8,
     /** Verde-limão — sucesso. */
     green: 0x6bcb77,
-    greenDark: 0x44a350,
+    greenDark: 0x429a4d,
     /** Laranja — variações em chamas/aviso. */
     orange: 0xffb84e
   },
@@ -79,38 +79,6 @@ export const Colors = {
     coinrain: 0xffb84e,
     mini: 0x87ceeb
   }
-} as const;
-
-/**
- * Tokens de espaçamento — escala 8pt do design system Float.
- * Use para padding, gaps, margens em UI.
- */
-export const Spacing = {
-  s1: 4,
-  s2: 8,
-  s3: 12,
-  s4: 16,
-  s6: 24,
-  s8: 32,
-  s12: 48,
-  s16: 64,
-  screenMargin: 32,
-  cardPadding: 24
-} as const;
-
-/** Raios de borda padronizados (design system). */
-export const Radii = {
-  chip: 16,
-  button: 24,
-  card: 32,
-  /** Pill / círculo perfeito — use valor alto. */
-  pill: 999
-} as const;
-
-/** Offset de "push 3D" dos botões. */
-export const Push = {
-  rest: 6,
-  pressed: 2
 } as const;
 
 /** Converte cor numérica em string CSS (#rrggbb). */

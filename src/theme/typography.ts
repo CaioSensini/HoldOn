@@ -20,11 +20,11 @@ const baseShadow = (offsetY: number, alpha = 0.6) => ({
 });
 
 export const Type = {
-  /** Display: logo "HOLD ON" / "FLOAT", títulos grandes. (88px/0.95 — design spec) */
+  /** Display: logo "FLOAT", títulos grandes. */
   display(overrides: Partial<TextStyle> = {}): TextStyle {
     return {
       fontFamily: FONT_FAMILY,
-      fontSize: '88px',
+      fontSize: '76px',
       fontStyle: '700',
       color: hex(Colors.text.primary),
       ...baseStroke(6),
@@ -33,12 +33,12 @@ export const Type = {
     };
   },
 
-  /** Heading H1: títulos de tela. (44px/1.05 — design spec) */
+  /** Heading: títulos de tela. */
   heading(overrides: Partial<TextStyle> = {}): TextStyle {
     return {
       fontFamily: FONT_FAMILY,
-      fontSize: '44px',
-      fontStyle: '600',
+      fontSize: '40px',
+      fontStyle: '700',
       color: hex(Colors.text.primary),
       ...baseStroke(4),
       ...baseShadow(3),
@@ -46,11 +46,11 @@ export const Type = {
     };
   },
 
-  /** Subheading H2: seções dentro de telas. (28px/1.15 — design spec) */
+  /** Subheading: seções dentro de telas. */
   subheading(overrides: Partial<TextStyle> = {}): TextStyle {
     return {
       fontFamily: FONT_FAMILY,
-      fontSize: '28px',
+      fontSize: '24px',
       fontStyle: '600',
       color: hex(Colors.text.primary),
       ...baseStroke(3),
@@ -58,24 +58,24 @@ export const Type = {
     };
   },
 
-  /** Body: texto comum. (20px/1.4 — design spec) */
+  /** Body: texto comum. */
   body(overrides: Partial<TextStyle> = {}): TextStyle {
     return {
       fontFamily: FONT_FAMILY,
-      fontSize: '20px',
+      fontSize: '18px',
       fontStyle: '500',
       color: hex(Colors.text.secondary),
       ...overrides
     };
   },
 
-  /** Caption: legendas, labels uppercase. (14px/1.3 — design spec) */
+  /** Caption: legendas. */
   caption(overrides: Partial<TextStyle> = {}): TextStyle {
     return {
       fontFamily: FONT_FAMILY,
       fontSize: '14px',
       fontStyle: '500',
-      color: hex(Colors.text.secondary),
+      color: hex(Colors.text.muted),
       ...overrides
     };
   },
@@ -84,7 +84,7 @@ export const Type = {
   numeric(overrides: Partial<TextStyle> = {}): TextStyle {
     return {
       fontFamily: FONT_FAMILY,
-      fontSize: '22px',
+      fontSize: '28px',
       fontStyle: '700',
       color: hex(Colors.text.accent),
       ...baseStroke(3),
@@ -114,18 +114,6 @@ export const Type = {
       fontStyle: '700',
       color: hex(Colors.text.primary),
       ...baseStroke(3),
-      ...overrides
-    };
-  },
-
-  /** CTA grande: botão PLAY central, climax visual. (64px) */
-  cta(overrides: Partial<TextStyle> = {}): TextStyle {
-    return {
-      fontFamily: FONT_FAMILY,
-      fontSize: '64px',
-      fontStyle: '700',
-      color: hex(Colors.text.primary),
-      ...baseStroke(4),
       ...overrides
     };
   }
