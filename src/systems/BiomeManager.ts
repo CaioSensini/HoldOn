@@ -3,6 +3,7 @@ import { GAME_HEIGHT, GAME_WIDTH, EVENTS, WORLD } from '../config';
 import { biomeForDistance, BIOMES, type BiomeDef, difficultyForDistance } from '../data/BiomeDefs';
 import { Colors } from '../theme/colors';
 import { showBiomeBanner } from '../ui/BiomeBanner';
+import { ensureBiomeTextures } from '../utils/PlaceholderArt';
 import { GameEventBus } from './EventSystem';
 
 interface ParallaxLayer {
@@ -60,6 +61,9 @@ export class BiomeManager {
 
   init(): void {
     const id = this.current.id;
+    // Lazy guard: se o usuário começou direto numa fase (dev start) que não
+    // é forest/cave, gera as texturas antes de criar as TileSprites.
+    ensureBiomeTextures(this.scene, id);
     this.layers = this.makeLayers(id);
     this.layers.forEach((l) => l.sprite.setAlpha(1));
 
@@ -153,7 +157,9 @@ export class BiomeManager {
       if (this.layersB[i]) this.layersB[i].sprite.tilePositionX = this.offsets[i];
     }
     // Subterrâneo: parallax mais lento que mid (sensação de profundidade).
-    if (this.subterraneanBg) {
+    // Performance: tilePositionX só atualiza quando o subsolo está visível.
+    // Evita render de ~988k pixels por frame quando o subsolo está oculto.
+    if (this.subterraneanBg && this.subterraneanBg.visible) {
       this.subterraneanOffset += dx * 0.4;
       this.subterraneanBg.tilePositionX = this.subterraneanOffset;
     }
@@ -170,6 +176,12 @@ export class BiomeManager {
   }
 
   private crossfadeTo(next: BiomeDef): void {
+    // Lazy load: garante que as 5 texturas do bioma destino existem antes de
+    // criar TileSprites. No-op se já foram geradas. Forest/Cave foram pré-
+    // geradas no preload; demais (temple/sea/beach/volcano/citadel/space) são
+    // criadas aqui na transição.
+    ensureBiomeTextures(this.scene, next.id);
+
     // Cria layers "B" do novo bioma com alpha 0, depois fade
     const newLayers = this.makeLayers(next.id);
     newLayers.forEach((l) => l.sprite.setAlpha(0));
@@ -420,7 +432,9 @@ export class BiomeManager {
       duration,
       ease: 'Sine.easeIn',
       onComplete: () => {
-        if (!bubble.scene) return;
+        // Guards: se overlay foi destruído (oceanOverlay=null) ou a bubble já não
+        // pertence à scene, NÃO continua o loop — evita leak de tween infinito.
+        if (!bubble.scene || !this.oceanOverlay) return;
         bubble.x = Math.random() * GAME_WIDTH;
         bubble.alpha = 0.65;
         this.animateBubble(bubble, topY, bottomY);

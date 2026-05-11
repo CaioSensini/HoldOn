@@ -982,14 +982,50 @@ const BIOME_PALETTES: Record<string, BiomePalette> = {
  *
  * Todas tile-able horizontalmente (último pixel = primeiro).
  */
-export function makeBiomeBackdrops(scene: Scene): void {
-  for (const [id, p] of Object.entries(BIOME_PALETTES)) {
+/**
+ * Por default gera SÓ os biomas iniciais (forest + cave) — economiza ~16
+ * texturas grandes (1280x720 sky + 1280x320 far + 1280x260 mid + 1280x180 fg
+ * = ~3M pixels por bioma × 8 biomas = 25M pixels) durante o preload.
+ * Os demais biomas são gerados lazy ao entrar via `ensureBiomeTextures()`.
+ */
+export function makeBiomeBackdrops(scene: Scene, ids: string[] = ['forest', 'cave']): void {
+  for (const id of ids) {
+    const p = BIOME_PALETTES[id];
+    if (!p) continue;
     drawSky(scene, `bg_${id}_sky`, id, p);
     drawFar(scene, `bg_${id}_far`, id, p);
     drawMid(scene, `bg_${id}_mid`, id, p);
     drawForeground(scene, `bg_${id}_fg`, id, p);
     // legacy single bg (fallback) — usado pela home se não montar parallax
     drawSky(scene, `bg_${id}`, id, p, true);
+  }
+}
+
+/**
+ * Gera as 5 texturas (sky/far/mid/fg/ceiling) de UM bioma sob demanda.
+ * No-op se as texturas já existem. Chamado pelo BiomeManager.crossfadeTo()
+ * antes de instanciar as TileSprites do bioma novo.
+ */
+export function ensureBiomeTextures(scene: Scene, biomeId: string): void {
+  const p = BIOME_PALETTES[biomeId];
+  if (!p) return;
+  if (!scene.textures.exists(`bg_${biomeId}_sky`)) {
+    drawSky(scene, `bg_${biomeId}_sky`, biomeId, p);
+  }
+  if (!scene.textures.exists(`bg_${biomeId}_far`)) {
+    drawFar(scene, `bg_${biomeId}_far`, biomeId, p);
+  }
+  if (!scene.textures.exists(`bg_${biomeId}_mid`)) {
+    drawMid(scene, `bg_${biomeId}_mid`, biomeId, p);
+  }
+  if (!scene.textures.exists(`bg_${biomeId}_fg`)) {
+    drawForeground(scene, `bg_${biomeId}_fg`, biomeId, p);
+  }
+  if (!scene.textures.exists(`bg_${biomeId}`)) {
+    drawSky(scene, `bg_${biomeId}`, biomeId, p, true);
+  }
+  if (!scene.textures.exists(`bg_${biomeId}_ceiling`)) {
+    drawCeiling(scene, `bg_${biomeId}_ceiling`, biomeId);
   }
 }
 
@@ -1240,8 +1276,10 @@ function drawForeground(scene: Scene, key: string, id: string, p: BiomePalette):
  * a vibe específica: copa da floresta, estalactites de pedra, vigas
  * de templo, etc. Usada como TileSprite no topo da tela pelo BiomeManager.
  */
-export function makeBiomeCeilings(scene: Scene): void {
-  for (const id of Object.keys(BIOME_PALETTES)) {
+/** Por default gera só forest/cave — demais lazy via ensureBiomeTextures. */
+export function makeBiomeCeilings(scene: Scene, ids: string[] = ['forest', 'cave']): void {
+  for (const id of ids) {
+    if (!BIOME_PALETTES[id]) continue;
     drawCeiling(scene, `bg_${id}_ceiling`, id);
   }
 }

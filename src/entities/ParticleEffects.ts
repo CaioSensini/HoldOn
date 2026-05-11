@@ -1,13 +1,27 @@
 import Phaser from 'phaser';
 import { PARTICLE_CAPS } from '../config';
 import { Colors } from '../theme/colors';
+import { EmitterPool } from '../systems/EmitterPool';
 
 /**
- * Helpers de partículas. Todos os emitters têm `maxParticles` configurado
- * e são destruídos via `time.delayedCall` no scope da scene
- * (cancelado automaticamente em scene shutdown).
+ * Helpers de partículas. Os emitters mais frequentes (spark, coinPop,
+ * powerUpFlash) ficam num pool e são reaproveitados — evita o custo de
+ * criar/destroyar emitters do Phaser a cada hit (cada destroy recompila
+ * shaders no WebGL no mobile). deathExplosion e confetti são raros, valem
+ * a criação descartável e ficam no fluxo antigo.
  */
 export class ParticleEffects {
+  private static pool: EmitterPool | null = null;
+
+  static init(scene: Phaser.Scene): void {
+    ParticleEffects.pool = new EmitterPool(scene, 4);
+  }
+
+  static shutdown(): void {
+    ParticleEffects.pool?.shutdown();
+    ParticleEffects.pool = null;
+  }
+
   static trail(
     scene: Phaser.Scene,
     follow: { x: number; y: number },
@@ -32,33 +46,70 @@ export class ParticleEffects {
   }
 
   static spark(scene: Phaser.Scene, x: number, y: number, count = 6): void {
-    const e = scene.add.particles(x, y, 'spark', {
-      lifespan: 420,
-      speed: { min: 140, max: 320 },
-      scale: { start: 0.95, end: 0 },
-      alpha: { start: 1, end: 0 },
-      maxParticles: PARTICLE_CAPS.SPARK,
-      angle: { min: 0, max: 360 },
-      blendMode: Phaser.BlendModes.ADD,
-      emitting: false
-    });
+    if (!ParticleEffects.pool) {
+      // fallback (cena sem init): cria descartável
+      const e = scene.add.particles(x, y, 'spark', {
+        lifespan: 420,
+        speed: { min: 140, max: 320 },
+        scale: { start: 0.95, end: 0 },
+        alpha: { start: 1, end: 0 },
+        maxParticles: PARTICLE_CAPS.SPARK,
+        angle: { min: 0, max: 360 },
+        blendMode: Phaser.BlendModes.ADD,
+        emitting: false
+      });
+      e.explode(count, x, y);
+      scene.time.delayedCall(500, () => e.destroy());
+      return;
+    }
+    const e = ParticleEffects.pool.acquire('spark', () =>
+      scene.add.particles(0, 0, 'spark', {
+        lifespan: 420,
+        speed: { min: 140, max: 320 },
+        scale: { start: 0.95, end: 0 },
+        alpha: { start: 1, end: 0 },
+        maxParticles: PARTICLE_CAPS.SPARK,
+        angle: { min: 0, max: 360 },
+        blendMode: Phaser.BlendModes.ADD,
+        emitting: false
+      })
+    );
+    e.setDepth(50);
     e.explode(count, x, y);
-    scene.time.delayedCall(500, () => e.destroy());
+    scene.time.delayedCall(500, () => ParticleEffects.pool?.release('spark', e));
   }
 
   static coinPop(scene: Phaser.Scene, x: number, y: number, tint: number): void {
-    const e = scene.add.particles(x, y, 'pixel', {
-      lifespan: 320,
-      speed: { min: 80, max: 220 },
-      scale: { start: 2, end: 0 },
-      alpha: { start: 1, end: 0 },
-      maxParticles: PARTICLE_CAPS.COIN_POP,
-      tint,
-      angle: { min: 0, max: 360 },
-      emitting: false
-    });
+    if (!ParticleEffects.pool) {
+      const e = scene.add.particles(x, y, 'pixel', {
+        lifespan: 320,
+        speed: { min: 80, max: 220 },
+        scale: { start: 2, end: 0 },
+        alpha: { start: 1, end: 0 },
+        maxParticles: PARTICLE_CAPS.COIN_POP,
+        tint,
+        angle: { min: 0, max: 360 },
+        emitting: false
+      });
+      e.explode(8, x, y);
+      scene.time.delayedCall(400, () => e.destroy());
+      return;
+    }
+    const e = ParticleEffects.pool.acquire('coinPop', () =>
+      scene.add.particles(0, 0, 'pixel', {
+        lifespan: 320,
+        speed: { min: 80, max: 220 },
+        scale: { start: 2, end: 0 },
+        alpha: { start: 1, end: 0 },
+        maxParticles: PARTICLE_CAPS.COIN_POP,
+        angle: { min: 0, max: 360 },
+        emitting: false
+      })
+    );
+    e.setDepth(50);
+    e.setParticleTint(tint);
     e.explode(8, x, y);
-    scene.time.delayedCall(400, () => e.destroy());
+    scene.time.delayedCall(400, () => ParticleEffects.pool?.release('coinPop', e));
   }
 
   static deathExplosion(scene: Phaser.Scene, x: number, y: number): void {
@@ -78,19 +129,38 @@ export class ParticleEffects {
   }
 
   static powerUpFlash(scene: Phaser.Scene, x: number, y: number, tint: number): void {
-    const e = scene.add.particles(x, y, 'spark', {
-      lifespan: 600,
-      speed: { min: 60, max: 280 },
-      scale: { start: 1.5, end: 0 },
-      alpha: { start: 1, end: 0 },
-      maxParticles: PARTICLE_CAPS.POWERUP_FLASH,
-      tint,
-      angle: { min: 0, max: 360 },
-      blendMode: Phaser.BlendModes.ADD,
-      emitting: false
-    });
+    if (!ParticleEffects.pool) {
+      const e = scene.add.particles(x, y, 'spark', {
+        lifespan: 600,
+        speed: { min: 60, max: 280 },
+        scale: { start: 1.5, end: 0 },
+        alpha: { start: 1, end: 0 },
+        maxParticles: PARTICLE_CAPS.POWERUP_FLASH,
+        tint,
+        angle: { min: 0, max: 360 },
+        blendMode: Phaser.BlendModes.ADD,
+        emitting: false
+      });
+      e.explode(20, x, y);
+      scene.time.delayedCall(750, () => e.destroy());
+      return;
+    }
+    const e = ParticleEffects.pool.acquire('powerUpFlash', () =>
+      scene.add.particles(0, 0, 'spark', {
+        lifespan: 600,
+        speed: { min: 60, max: 280 },
+        scale: { start: 1.5, end: 0 },
+        alpha: { start: 1, end: 0 },
+        maxParticles: PARTICLE_CAPS.POWERUP_FLASH,
+        angle: { min: 0, max: 360 },
+        blendMode: Phaser.BlendModes.ADD,
+        emitting: false
+      })
+    );
+    e.setDepth(50);
+    e.setParticleTint(tint);
     e.explode(20, x, y);
-    scene.time.delayedCall(750, () => e.destroy());
+    scene.time.delayedCall(750, () => ParticleEffects.pool?.release('powerUpFlash', e));
   }
 
   /** Confete dourado (recorde quebrado, level up, compra). */

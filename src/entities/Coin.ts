@@ -11,14 +11,15 @@ const TIER_TEXTURE: Record<CoinTier, string> = {
 };
 
 /**
- * Coin poolable. Tweens infinitos (rotação + pulse) são reiniciados em reset()
- * e mortos em release() para evitar callbacks órfãos.
+ * Coin poolable. Rotação + pulse rodam no `update()` por trigonometria barata
+ * (sem tweens infinitos por instância) — com 20 moedas na tela isso elimina
+ * ~40 tweens ativos. Apenas o tween de coleta (curto, único) sobrevive.
  */
 export class Coin implements Poolable {
   readonly sprite: Phaser.GameObjects.Image;
   private scene: Phaser.Scene;
-  private rotateTween: Phaser.Tweens.Tween | null = null;
-  private pulseTween: Phaser.Tweens.Tween | null = null;
+  /** Fase aleatória inicial pra evitar pulse sincronizado entre moedas. */
+  private pulsePhase = 0;
 
   active = false;
   alive = false;
@@ -38,35 +39,27 @@ export class Coin implements Poolable {
     this.beingAttracted = false;
     this.tier = tier;
     this.baseValue = COIN_VALUES[tier];
+    this.pulsePhase = Math.random() * Math.PI * 2;
     this.sprite
       .setTexture(TIER_TEXTURE[tier])
       .setPosition(x, y)
       .setVisible(true)
       .setAlpha(1)
       .setScale(1)
-      .setAngle(0);
+      .setAngle(Math.random() * 360);
 
-    this.killTweens();
-    this.rotateTween = this.scene.tweens.add({
-      targets: this.sprite,
-      angle: 360,
-      duration: 1800,
-      repeat: -1
-    });
-    this.pulseTween = this.scene.tweens.add({
-      targets: this.sprite,
-      scale: { from: 1, to: 1.1 },
-      duration: 600,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
+    this.killCollectTween();
   }
 
   update(dx: number): void {
     if (!this.alive) return;
     if (!this.beingAttracted) {
       this.sprite.x -= dx;
+      // Rotação manual sem tween: 4° por frame ≈ 240°/s a 60fps.
+      this.sprite.angle = (this.sprite.angle + 4) % 360;
+      // Pulse senoidal: 1 op por frame por moeda, sem tween manager.
+      const t = this.scene.time.now / 600 + this.pulsePhase;
+      this.sprite.setScale(1 + Math.sin(t) * 0.05);
     }
   }
 
@@ -85,7 +78,7 @@ export class Coin implements Poolable {
       return;
     }
     this.alive = false;
-    this.killTweens();
+    this.killCollectTween();
     this.scene.tweens.add({
       targets: this.sprite,
       scale: 1.6,
@@ -99,24 +92,17 @@ export class Coin implements Poolable {
   release(): void {
     this.alive = false;
     this.beingAttracted = false;
-    this.killTweens();
+    this.killCollectTween();
     this.sprite.setVisible(false).setAlpha(1).setScale(1);
   }
 
   destroy(): void {
-    this.killTweens();
+    this.killCollectTween();
     this.sprite.destroy();
   }
 
-  private killTweens(): void {
-    if (this.rotateTween) {
-      this.rotateTween.stop();
-      this.rotateTween = null;
-    }
-    if (this.pulseTween) {
-      this.pulseTween.stop();
-      this.pulseTween = null;
-    }
+  /** Mata só o tween de coleta — rotação/pulse são manuais agora. */
+  private killCollectTween(): void {
     this.scene.tweens.killTweensOf(this.sprite);
   }
 }

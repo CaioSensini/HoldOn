@@ -104,6 +104,10 @@ export class GameScene extends Phaser.Scene {
   private ascendingFromSea = false;
   /** Próxima distância (m) onde o cofre/porquinho pode aparecer. */
   private nextCoinSafeAt = 1200;
+  /** Throttle: emite EVENTS.DISTANCE_UPDATE no máximo 10×/s. */
+  private lastDistanceEmitMs = 0;
+  /** Throttle: DebugHUD.update roda 1×/s (custoso). */
+  private lastDebugUpdateMs = 0;
   private tunnelDecor: Phaser.GameObjects.Container | null = null;
   private tunnelFlowLines: Phaser.GameObjects.Rectangle[] = [];
   private gameOverTransitionStarted = false;
@@ -192,6 +196,8 @@ export class GameScene extends Phaser.Scene {
     this.gameOverFallbackHandle = null;
 
     this.computeEquipBonuses();
+
+    ParticleEffects.init(this);
 
     this.juice = new JuiceManager(this);
     this.biomeManager = new BiomeManager(this);
@@ -504,7 +510,10 @@ export class GameScene extends Phaser.Scene {
 
     const dx = this.worldSpeed * dt;
     this.distance += dx * 0.1;
-    this.bus.emit(EVENTS.DISTANCE_UPDATE, this.distance);
+    if (_time - this.lastDistanceEmitMs > 100) {
+      this.bus.emit(EVENTS.DISTANCE_UPDATE, this.distance);
+      this.lastDistanceEmitMs = _time;
+    }
     this.scoreSystem.addDistance(dx * 0.1);
 
     this.player.update(dtMs);
@@ -574,7 +583,8 @@ export class GameScene extends Phaser.Scene {
     this.tickPowerUps(_time);
     this.hud.update();
 
-    if (this.debugHud) {
+    if (this.debugHud && _time - this.lastDebugUpdateMs > 1000) {
+      this.lastDebugUpdateMs = _time;
       this.debugHud.update({
         obstaclesActive: this.obstacleSpawner.countActive(),
         obstaclesTotal: this.obstacleSpawner.countTotal(),
@@ -1914,6 +1924,11 @@ export class GameScene extends Phaser.Scene {
     }
     try {
       this.juice?.shutdown();
+    } catch {
+      /* */
+    }
+    try {
+      ParticleEffects.shutdown();
     } catch {
       /* */
     }

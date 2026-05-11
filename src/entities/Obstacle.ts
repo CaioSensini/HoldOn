@@ -202,6 +202,12 @@ export class Obstacle implements Poolable {
     this.alive = false;
     this.cleanupInstance();
     this.scene.tweens.killTweensOf(this.container);
+    // Defesa contra builders que esquecem cleanup: mata tweens de TODOS os
+    // children (Graphics, Image, sub-containers). Tweens infinitos órfãos
+    // vazam scene + pool.
+    for (const child of this.container.list) {
+      this.scene.tweens.killTweensOf(child);
+    }
     this.container.removeAll(true);
     this.container.setVisible(false);
     this.hitboxes = [];
