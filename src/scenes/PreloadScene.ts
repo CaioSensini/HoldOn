@@ -151,8 +151,6 @@ async function assetExists(path: string): Promise<boolean> {
 export class PreloadScene extends Phaser.Scene {
   /** Subset de assets que existem fisicamente — preenchido em init/create. */
   private existingAssets: AssetEntry[] = [];
-  /** Subset de ícones SVG presentes — carregados via load.svg. */
-  private existingIcons: AssetEntry[] = [];
 
   constructor() {
     super({ key: SCENES.PRELOAD });
@@ -169,11 +167,6 @@ export class PreloadScene extends Phaser.Scene {
       IMAGE_ASSETS.map(async (a) => ({ asset: a, ok: await assetExists(a.path) }))
     );
     this.existingAssets = checks.filter((c) => c.ok).map((c) => c.asset);
-
-    const iconChecks = await Promise.all(
-      ICON_SVG_ASSETS.map(async (a) => ({ asset: a, ok: await assetExists(a.path) }))
-    );
-    this.existingIcons = iconChecks.filter((c) => c.ok).map((c) => c.asset);
   }
 
   preload(): void {
@@ -184,11 +177,11 @@ export class PreloadScene extends Phaser.Scene {
     for (const a of this.existingAssets) {
       this.load.image(a.key, a.path);
     }
-    // SVGs do Home Screen — carregados como texture via load.svg
-    // (vector → raster com tamanho razoável; 96px cobre todos os usos
-    //  até 'play-icon' 56px e o 'btn-play' interno).
-    for (const ic of this.existingIcons) {
-      this.load.svg(ic.key, ic.path, { width: 96, height: 96 });
+    // SVGs do Home Screen — sempre carregar (foram copiados em public/).
+    // Usa load.svg com rasterização 128px (cobre todos os usos: bottom-nav 50,
+    // play-icon 56, hpill 32, daily-badge 28, magnet 52, BEST trophy 26).
+    for (const ic of ICON_SVG_ASSETS) {
+      this.load.svg(ic.key, ic.path, { width: 128, height: 128 });
     }
   }
 

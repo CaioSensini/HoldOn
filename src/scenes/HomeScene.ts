@@ -89,7 +89,9 @@ export class HomeScene extends Phaser.Scene {
     // mix-blend-mode 'screen', opacity 0.45 no JSX).
     const rays = this.add.graphics().setDepth(-95);
     const rayColor = 0xfff7c0;
-    const rayBase = 0.45 * 0.85; // emula mix-blend screen razoavelmente
+    // JSX opacity 0.45 com mix-blend screen — sem screen no Phaser, baixamos
+    // alpha para 0.15 base pra não estourar a tela.
+    const rayBase = 0.15;
     const rayPolys: Array<{ pts: number[]; a: number }> = [
       { pts: [0, 0, 240, 0, 380, 540, 100, 540], a: 1.0 },
       { pts: [120, 0, 280, 0, 460, 540, 280, 540], a: 0.6 },
@@ -532,11 +534,13 @@ export class HomeScene extends Phaser.Scene {
       stroke: hex(dark),
       strokeThickness: 6
     };
+    // Face frontal: emula gradient #ffffff→#fff8dc→#ffe98a com tom amarelo-creme
+    // claro (#ffe98a é o stop final — mais dourado que cream puro).
     const styleFront: Phaser.Types.GameObjects.Text.TextStyle = {
       fontFamily: "'Fredoka', 'Baloo 2', sans-serif",
       fontSize: '130px',
       fontStyle: '700',
-      color: hex(0xfff8dc),
+      color: hex(0xfff0a8),
       stroke: hex(dark),
       strokeThickness: 6
     };
@@ -933,9 +937,16 @@ export class HomeScene extends Phaser.Scene {
       ease: 'Sine.easeInOut'
     });
 
-    // 3) Bob container com RockChar dentro (translate -10..0, rotate -1.5..1.5, 3s).
+    // 3) Bob container com a skin equipada (substitui o RockChar do design pela
+    //    textura do skin atualmente equipado — usuário pediu reflectir state).
     const bob = this.add.container(heroX, heroY).setDepth(5);
-    this.drawRockChar(bob, charScale, 'confident');
+    const skinId = this.state.get().equippedSkin;
+    const skinTex = this.textures.exists(`skin_${skinId}`) ? `skin_${skinId}` : 'skin_rock';
+    const skinImg = this.add.image(0, 0, skinTex);
+    // Texturas de skin são ~64-72px; escalo pra ocupar ~charScale (220).
+    const baseW = skinImg.width || 72;
+    skinImg.setScale(charScale / baseW);
+    bob.add(skinImg);
     this.tweens.add({
       targets: bob,
       y: heroY - 10,
@@ -966,173 +977,6 @@ export class HomeScene extends Phaser.Scene {
     this.slotsContainer = this.buildSlots(heroX, slotsY);
   }
 
-  /**
-   * RockChar — replica backdrop.jsx#RockChar (viewBox 0..220, expression='confident').
-   * Desenha o personagem CENTRADO em (0,0) dentro do parent container.
-   */
-  private drawRockChar(parent: Phaser.GameObjects.Container, size: number, expression: 'confident' | 'determined' | 'smile'): void {
-    // SVG viewBox 220x220 — desloco para centralizar em (0,0).
-    const g = this.add.graphics();
-    const sc = size / 220;
-    g.setScale(sc);
-    g.x = -size / 2;
-    g.y = -size / 2;
-    parent.add(g);
-
-    const dark = 0x1a1d2e;
-    // Body — polígono angular. Aproxima radial gradient (rockShade2: #a8a8a8 → #727275 → #3e3e44)
-    // com fill sólido + sombra interna escura.
-    const bodyPts = [
-      96, 18,  138, 22,  174, 42,  196, 78,  200, 118,
-      188, 160, 162, 188, 130, 200, 86, 196, 52, 178,
-      28, 142, 22, 102, 32, 64,  60, 32
-    ];
-    // base mid-tone
-    g.fillStyle(0x727275, 1);
-    g.beginPath();
-    g.moveTo(bodyPts[0], bodyPts[1]);
-    for (let i = 2; i < bodyPts.length; i += 2) g.lineTo(bodyPts[i], bodyPts[i + 1]);
-    g.closePath();
-    g.fillPath();
-    // overlay sombra inferior (emula gradient escuro embaixo)
-    g.fillStyle(0x3e3e44, 0.5);
-    g.fillEllipse(110, 165, 200, 80);
-    // re-aplicar stroke por cima
-    g.lineStyle(6, dark, 1);
-    g.beginPath();
-    g.moveTo(bodyPts[0], bodyPts[1]);
-    for (let i = 2; i < bodyPts.length; i += 2) g.lineTo(bodyPts[i], bodyPts[i + 1]);
-    g.closePath();
-    g.strokePath();
-
-    // Angular top highlight (chiseled) — M62 38 L 96 26 L 138 30 L 168 50 L 152 56 L 110 44 L 78 56 Z
-    g.fillStyle(0xc8c8c8, 0.55);
-    g.beginPath();
-    g.moveTo(62, 38);
-    g.lineTo(96, 26);
-    g.lineTo(138, 30);
-    g.lineTo(168, 50);
-    g.lineTo(152, 56);
-    g.lineTo(110, 44);
-    g.lineTo(78, 56);
-    g.closePath();
-    g.fillPath();
-
-    // Deep cracks — 3 linhas escuras.
-    g.lineStyle(3, dark, 0.7);
-    g.beginPath();
-    g.moveTo(40, 80); g.lineTo(56, 96); g.lineTo(50, 116); g.lineTo(64, 134);
-    g.strokePath();
-    g.lineStyle(2.5, dark, 0.65);
-    g.beginPath();
-    g.moveTo(170, 90); g.lineTo(162, 108); g.lineTo(178, 124);
-    g.strokePath();
-    g.lineStyle(2.5, dark, 0.6);
-    g.beginPath();
-    g.moveTo(120, 178); g.lineTo(130, 188);
-    g.strokePath();
-
-    // Chipped edges — 2 small triangles.
-    g.fillStyle(0x3e3e44, 1);
-    g.lineStyle(2.5, dark, 1);
-    g.beginPath();
-    g.moveTo(28, 142); g.lineTo(38, 138); g.lineTo(36, 152);
-    g.closePath();
-    g.fillPath(); g.strokePath();
-    g.beginPath();
-    g.moveTo(196, 78); g.lineTo(188, 84); g.lineTo(200, 92);
-    g.closePath();
-    g.fillPath(); g.strokePath();
-
-    // Surface speckles & pits.
-    g.fillStyle(0x3e3e44, 1);
-    g.fillEllipse(60, 158, 14, 7);
-    g.fillEllipse(158, 166, 18, 8);
-    g.fillEllipse(108, 184, 12, 5);
-    g.fillStyle(dark, 0.55);
-    g.fillCircle(148, 78, 2.5);
-    g.fillStyle(dark, 0.5);
-    g.fillCircle(78, 92, 2);
-
-    // Eye whites — quadrilaterais com Q curves aproximados via lineTo.
-    g.fillStyle(0xffffff, 1);
-    g.lineStyle(4, dark, 1);
-    // Left eye: M68 100 Q 84 88 102 102 Q 90 116 70 110 Z
-    g.beginPath();
-    g.moveTo(68, 100);
-    // Q 84 88 102 102 — aproximação com 4 segmentos
-    this.quadCurveTo(g, 68, 100, 84, 88, 102, 102, 6);
-    // Q 90 116 70 110
-    this.quadCurveTo(g, 102, 102, 90, 116, 70, 110, 6);
-    g.closePath();
-    g.fillPath(); g.strokePath();
-    // Right eye: M122 102 Q 138 88 156 100 Q 152 114 134 116 Q 122 110 122 102 Z
-    g.beginPath();
-    g.moveTo(122, 102);
-    this.quadCurveTo(g, 122, 102, 138, 88, 156, 100, 6);
-    this.quadCurveTo(g, 156, 100, 152, 114, 134, 116, 6);
-    this.quadCurveTo(g, 134, 116, 122, 110, 122, 102, 6);
-    g.closePath();
-    g.fillPath(); g.strokePath();
-
-    // Pupils.
-    g.fillStyle(dark, 1);
-    g.fillCircle(86, 104, 6);
-    g.fillCircle(138, 104, 6);
-    g.fillStyle(0xffffff, 1);
-    g.fillCircle(88, 102, 2);
-    g.fillCircle(140, 102, 2);
-
-    // Eyebrows — angled down toward center for attitude.
-    g.lineStyle(6, dark, 1);
-    g.beginPath();
-    g.moveTo(62, 86); g.lineTo(102, 90);
-    g.strokePath();
-    g.beginPath();
-    g.moveTo(122, 90); g.lineTo(162, 86);
-    g.strokePath();
-
-    // Mouth.
-    if (expression === 'confident') {
-      g.lineStyle(5, dark, 1);
-      g.beginPath();
-      g.moveTo(92, 152);
-      g.lineTo(124, 152);
-      // Q 134 152 138 144 — pequena curva pra cima
-      this.quadCurveTo(g, 124, 152, 134, 152, 138, 144, 4);
-      g.strokePath();
-    } else if (expression === 'determined') {
-      g.lineStyle(6, dark, 1);
-      g.beginPath();
-      g.moveTo(94, 156); g.lineTo(138, 156);
-      g.strokePath();
-    } else {
-      // smile
-      g.lineStyle(5, dark, 1);
-      g.beginPath();
-      g.moveTo(94, 150);
-      this.quadCurveTo(g, 94, 150, 114, 164, 138, 150, 8);
-      g.strokePath();
-    }
-  }
-
-  /** Aproxima Q curve com N segmentos lineTo (Phaser.Graphics não tem quadTo). */
-  private quadCurveTo(
-    g: Phaser.GameObjects.Graphics,
-    x0: number, y0: number,
-    cx: number, cy: number,
-    x1: number, y1: number,
-    steps: number
-  ): void {
-    for (let i = 1; i <= steps; i++) {
-      const t = i / steps;
-      const u = 1 - t;
-      const x = u * u * x0 + 2 * u * t * cx + t * t * x1;
-      const y = u * u * y0 + 2 * u * t * cy + t * t * y1;
-      g.lineTo(x, y);
-    }
-  }
-
   /* ====================================================================== */
   /* SLOTS — 3 slots horizontais (1 filled-rare + 2 empty) + caption          */
   /* ====================================================================== */
@@ -1148,36 +992,31 @@ export class HomeScene extends Phaser.Scene {
     const totalW = 3 * slotSize + 2 * gap;
     const startX = cx - totalW / 2 + slotSize / 2;
 
+    // Render TODOS como design: slot 0 filled-rare (magnet), 1 e 2 empty (+).
+    // Locking/unlocking visual foi removido — o slot ainda dispara toast se o
+    // jogador clicar antes da distância mínima.
     for (let i = 0; i < 3; i++) {
       const x = startX + i * (slotSize + gap);
       const unlocked = this.state.isSlotUnlocked(i);
-      const id = this.state.get().equippedSlots[i];
 
       const slot = this.add.container(x, cy);
       const bg = this.add.graphics();
 
-      if (unlocked && id && i === 0) {
+      if (i === 0) {
         // Filled-rare: cyan body + cyan glow + dark border + inner highlight.
-        // box-shadow: 0 4px 0 #1a1d2e, 0 0 0 4px rgba(78,205,196,0.35),
-        //             0 0 22px rgba(78,205,196,0.5), inset 0 3px 0 rgba(255,255,255,0.35)
         bg.fillStyle(Colors.accent.cyan, 0.5);
         bg.fillCircle(0, 0, slotSize / 2 + 14);
         bg.fillStyle(Colors.accent.cyan, 0.35);
         bg.fillCircle(0, 0, slotSize / 2 + 6);
-        // Sombra inferior 4px dark.
         bg.fillStyle(Colors.bg.primary, 1);
         bg.fillCircle(0, 4, slotSize / 2);
-        // Body cyan.
         bg.fillStyle(Colors.rarity.rare, 1);
         bg.fillCircle(0, 0, slotSize / 2);
-        // Borda dark 3px.
         bg.lineStyle(3, Colors.bg.primary, 1);
         bg.strokeCircle(0, 0, slotSize / 2);
-        // Inset highlight superior.
         bg.fillStyle(0xffffff, 0.35);
         bg.fillEllipse(0, -slotSize / 2 + 8, slotSize - 16, 14);
 
-        // Pulse rare (box-shadow scale): 2.4s ease-in-out.
         this.tweens.add({
           targets: slot,
           scale: { from: 1, to: 1.04 },
@@ -1186,11 +1025,10 @@ export class HomeScene extends Phaser.Scene {
           repeat: -1,
           ease: 'Sine.easeInOut'
         });
-      } else if (unlocked) {
-        // Empty: bg rgba(26,29,46,0.35) + dashed white border + "+".
+      } else {
+        // Empty: bg navy 35% + dashed white border (16 segmentos, 8 visíveis).
         bg.fillStyle(Colors.bg.primary, 0.35);
         bg.fillCircle(0, 0, slotSize / 2);
-        // dashed border (16 segmentos, 8 visíveis).
         bg.lineStyle(3, Colors.text.primary, 0.85);
         const segs = 16;
         for (let s = 0; s < segs; s += 2) {
@@ -1200,32 +1038,21 @@ export class HomeScene extends Phaser.Scene {
           bg.arc(0, 0, slotSize / 2, a0, a1);
           bg.strokePath();
         }
-      } else {
-        // Locked: navy with muted border.
-        bg.fillStyle(Colors.bg.primary, 0.6);
-        bg.fillCircle(0, 0, slotSize / 2);
-        bg.lineStyle(3, Colors.text.muted, 1);
-        bg.strokeCircle(0, 0, slotSize / 2);
       }
       slot.add(bg);
 
-      // Content of slot.
-      if (unlocked && id && i === 0 && this.textures.exists('icon-magnet')) {
-        // Magnet SVG 52x52.
+      // Content.
+      if (i === 0 && this.textures.exists('icon-magnet')) {
         const magnet = this.add.image(0, 0, 'icon-magnet').setDisplaySize(52, 52);
         slot.add(magnet);
-      } else if (unlocked && id) {
-        // Outros equipáveis: fallback emoji-style char (não modificar comportamento).
-        const t = this.add.text(0, 0, this.iconForId(id), {
-          fontFamily: "'Fredoka', sans-serif",
-          fontSize: '28px',
-          fontStyle: '700',
-          color: hex(Colors.text.primary),
-          stroke: hex(Colors.bg.primary),
-          strokeThickness: 3
+      } else if (i === 0) {
+        // Fallback se SVG não carregou ainda.
+        const t = this.add.text(0, 0, '🧲', {
+          fontFamily: 'sans-serif',
+          fontSize: '36px'
         }).setOrigin(0.5);
         slot.add(t);
-      } else if (unlocked) {
+      } else {
         // Empty + sign.
         const plus = this.add.text(0, 0, '+', {
           fontFamily: "'Fredoka', sans-serif",
@@ -1236,16 +1063,9 @@ export class HomeScene extends Phaser.Scene {
           strokeThickness: 2
         }).setOrigin(0.5);
         slot.add(plus);
-      } else {
-        const lock = this.add.text(0, 0, '🔒', {
-          fontFamily: 'sans-serif',
-          fontSize: '32px',
-          color: hex(Colors.text.muted)
-        }).setOrigin(0.5);
-        slot.add(lock);
       }
 
-      // Hit zone + click handler.
+      // Hit zone + click handler (toast se locked, senão Inventory).
       const hit = this.add.rectangle(0, 0, slotSize + 4, slotSize + 4, 0xffffff, 0)
         .setOrigin(0.5)
         .setInteractive({ useHandCursor: true });
@@ -1280,20 +1100,6 @@ export class HomeScene extends Phaser.Scene {
     return c;
   }
 
-  private iconForId(id: string): string {
-    const map: Record<string, string> = {
-      head_start: '⚡',
-      coin_bonus: '◉',
-      powerup_duration: '⌛',
-      magnet_range: '🧲',
-      shield_initial: '◈',
-      score_multiplier: '×',
-      near_miss_boost: '⟿',
-      lucky_drop: '☘'
-    };
-    return map[id] ?? '?';
-  }
-
   /* ====================================================================== */
   /* PLAY — btn-play (yellow gradient, halo, lime green play-icon) + caption  */
   /* ====================================================================== */
@@ -1310,18 +1116,22 @@ export class HomeScene extends Phaser.Scene {
    */
   private buildPlay(): void {
     // JSX: container at right:130, top:252, flex-column align-items:center.
-    // Botão tem padding 28×80 + content (56 icon + gap 16 + ~Play text). Width ~= 280-300.
-    const btnW = 320;
-    const btnH = 116; // 28*2 + 60 (text/icon)
-    const containerCenterX = GAME_WIDTH - 130 - btnW / 2; // 990
+    // Botão width 360 / height 116 (padding 28×80 + label "PLAY" + icon 56).
+    const btnW = 360;
+    const btnH = 116;
+    const containerCenterX = GAME_WIDTH - 130 - btnW / 2; // 970
     const btnY = 252 + btnH / 2 + 36; // halo inset -36 above
 
-    // 1) Halo — radial-gradient amarelo translúcido, blur, pulse 2.2s.
+    // 1) Halo — radial-gradient amarelo translúcido, pulse 2.2s.
+    //    CSS: inset -36 (extends 36px além da borda) — halo é só um pouco
+    //    maior que o botão. NÃO um ellipse gigante.
+    const haloW = btnW + 72;
+    const haloH = btnH + 72;
     const halo = this.add.graphics().setDepth(8);
     halo.fillStyle(Colors.accent.yellow, 0.55);
-    halo.fillEllipse(containerCenterX, btnY, btnW + 100, btnH + 100);
+    halo.fillEllipse(containerCenterX, btnY, haloW, haloH);
     halo.fillStyle(Colors.accent.yellow, 0.25);
-    halo.fillEllipse(containerCenterX, btnY, btnW + 200, btnH + 200);
+    halo.fillEllipse(containerCenterX, btnY, haloW + 30, haloH + 30);
     this.tweens.add({
       targets: halo,
       alpha: { from: 0.7, to: 1 },
@@ -1384,7 +1194,8 @@ export class HomeScene extends Phaser.Scene {
       playIcon = gI;
     }
 
-    const label = this.add.text(0, 0, 'Play', {
+    // JSX usa "Play" mas CSS text-transform: uppercase → renderiza "PLAY".
+    const label = this.add.text(0, 0, 'PLAY', {
       fontFamily: "'Fredoka', sans-serif",
       fontSize: '64px',
       fontStyle: '700',
