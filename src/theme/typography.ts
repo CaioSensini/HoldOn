@@ -20,11 +20,11 @@ const baseShadow = (offsetY: number, alpha = 0.6) => ({
 });
 
 export const Type = {
-  /** Display: logo "FLOAT", títulos grandes. */
+  /** Display: logo, títulos grandes. Tokens do design: 700 88px/0.95. */
   display(overrides: Partial<TextStyle> = {}): TextStyle {
     return {
       fontFamily: FONT_FAMILY,
-      fontSize: '76px',
+      fontSize: '88px',
       fontStyle: '700',
       color: hex(Colors.text.primary),
       ...baseStroke(6),
@@ -33,12 +33,12 @@ export const Type = {
     };
   },
 
-  /** Heading: títulos de tela. */
+  /** Heading H1: títulos de tela. Tokens do design: 600 44px/1.05. */
   heading(overrides: Partial<TextStyle> = {}): TextStyle {
     return {
       fontFamily: FONT_FAMILY,
-      fontSize: '40px',
-      fontStyle: '700',
+      fontSize: '44px',
+      fontStyle: '600',
       color: hex(Colors.text.primary),
       ...baseStroke(4),
       ...baseShadow(3),
@@ -46,11 +46,11 @@ export const Type = {
     };
   },
 
-  /** Subheading: seções dentro de telas. */
+  /** Subheading H2: seções dentro de telas. Tokens do design: 600 28px/1.15. */
   subheading(overrides: Partial<TextStyle> = {}): TextStyle {
     return {
       fontFamily: FONT_FAMILY,
-      fontSize: '24px',
+      fontSize: '28px',
       fontStyle: '600',
       color: hex(Colors.text.primary),
       ...baseStroke(3),
@@ -58,11 +58,11 @@ export const Type = {
     };
   },
 
-  /** Body: texto comum. */
+  /** Body: texto comum. Tokens do design: 500 20px/1.4. */
   body(overrides: Partial<TextStyle> = {}): TextStyle {
     return {
       fontFamily: FONT_FAMILY,
-      fontSize: '18px',
+      fontSize: '20px',
       fontStyle: '500',
       color: hex(Colors.text.secondary),
       ...overrides

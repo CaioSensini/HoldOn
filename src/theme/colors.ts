@@ -14,7 +14,7 @@ export const Colors = {
     /** Azul-escuro médio — cards, modais, painéis. */
     secondary: 0x2a2f4a,
     /** Variante mais clara para layering. */
-    tertiary: 0x3a4060,
+    tertiary: 0x353b5c,
     /** Preto puro — overlays escuros (combinar com alpha). */
     overlay: 0x000000
   },
@@ -29,13 +29,13 @@ export const Colors = {
     coralDark: 0xc94545,
     /** Ciano — power-ups, progressão, secundário. */
     cyan: 0x4ecdc4,
-    cyanDark: 0x2ea49b,
+    cyanDark: 0x2ea29a,
     /** Roxo — lendárias, especiais. */
     purple: 0xa06cd5,
-    purpleDark: 0x7344a8,
+    purpleDark: 0x7548ad,
     /** Verde-limão — sucesso. */
     green: 0x6bcb77,
-    greenDark: 0x429a4d,
+    greenDark: 0x44a350,
     /** Laranja — variações em chamas/aviso. */
     orange: 0xffb84e
   },
