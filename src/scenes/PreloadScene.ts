@@ -116,6 +116,24 @@ const IMAGE_ASSETS: AssetEntry[] = [
   { key: 'ui_panel', path: 'assets/images/ui/panel.png' }
 ];
 
+/** SVG icons used by HomeScene (Claude Design source). */
+const ICON_SVG_ASSETS: AssetEntry[] = [
+  { key: 'icon-coin',      path: 'assets/images/icons/coin.svg' },
+  { key: 'icon-trophy',    path: 'assets/images/icons/trophy.svg' },
+  { key: 'icon-magnet',    path: 'assets/images/icons/magnet.svg' },
+  { key: 'icon-play',      path: 'assets/images/icons/play.svg' },
+  { key: 'icon-shop',      path: 'assets/images/icons/shop.svg' },
+  { key: 'icon-backpack',  path: 'assets/images/icons/backpack.svg' },
+  { key: 'icon-checklist', path: 'assets/images/icons/checklist.svg' },
+  { key: 'icon-podium',    path: 'assets/images/icons/podium.svg' },
+  { key: 'icon-settings',  path: 'assets/images/icons/settings.svg' },
+  { key: 'icon-chest',     path: 'assets/images/icons/chest.svg' },
+  { key: 'icon-gift',      path: 'assets/images/icons/gift.svg' },
+  { key: 'icon-bolt',      path: 'assets/images/icons/bolt.svg' },
+  { key: 'icon-check',     path: 'assets/images/icons/check.svg' },
+  { key: 'icon-star',      path: 'assets/images/icons/star.svg' }
+];
+
 /**
  * Verifica via HEAD request se um asset existe — evita os warnings
  * "Failed to process file" do Phaser quando o arquivo é placeholder ainda
@@ -133,6 +151,8 @@ async function assetExists(path: string): Promise<boolean> {
 export class PreloadScene extends Phaser.Scene {
   /** Subset de assets que existem fisicamente — preenchido em init/create. */
   private existingAssets: AssetEntry[] = [];
+  /** Subset de ícones SVG presentes — carregados via load.svg. */
+  private existingIcons: AssetEntry[] = [];
 
   constructor() {
     super({ key: SCENES.PRELOAD });
@@ -149,6 +169,11 @@ export class PreloadScene extends Phaser.Scene {
       IMAGE_ASSETS.map(async (a) => ({ asset: a, ok: await assetExists(a.path) }))
     );
     this.existingAssets = checks.filter((c) => c.ok).map((c) => c.asset);
+
+    const iconChecks = await Promise.all(
+      ICON_SVG_ASSETS.map(async (a) => ({ asset: a, ok: await assetExists(a.path) }))
+    );
+    this.existingIcons = iconChecks.filter((c) => c.ok).map((c) => c.asset);
   }
 
   preload(): void {
@@ -158,6 +183,12 @@ export class PreloadScene extends Phaser.Scene {
     });
     for (const a of this.existingAssets) {
       this.load.image(a.key, a.path);
+    }
+    // SVGs do Home Screen — carregados como texture via load.svg
+    // (vector → raster com tamanho razoável; 96px cobre todos os usos
+    //  até 'play-icon' 56px e o 'btn-play' interno).
+    for (const ic of this.existingIcons) {
+      this.load.svg(ic.key, ic.path, { width: 96, height: 96 });
     }
   }
 
