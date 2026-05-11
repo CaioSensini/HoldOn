@@ -27,8 +27,12 @@ export const PLAYER = {
   X: 280,
   X_MIN: 70,
   X_MAX: 1210,
-  /** Range vertical (Y mínimo no topo da área jogável, máximo no chão). */
-  Y_MIN: 120,
+  /**
+   * Range vertical (Y mínimo no topo da área jogável, máximo no chão).
+   * Y_MIN=80 dá ~40px extra de "fase aérea" — mais espaço pra manobrar
+   * acima das armadilhas low (ceilingCurtainHitbox se adapta sozinho).
+   */
+  Y_MIN: 80,
   Y_MAX: 600,
   /** Largura/altura do hitbox base. */
   WIDTH: 56,
@@ -68,12 +72,13 @@ export const WORLD = {
   /** Y do chão (linha de baseline). */
   GROUND_Y: 620,
   /**
-   * Altura visual da rua/chão. Calibrada pra terminar em y=688 — deixa
-   * uma faixa de ~32px do subsolo permanente visível na borda inferior
-   * da tela mesmo durante gameplay normal (efeito "cross-section").
+   * Altura visual da rua/chão. ROAD_TOP_Y=604, ROAD_HEIGHT=116 → cobre
+   * y=604..720 (até o fim da tela). O subsolo agora fica oculto por
+   * default (mostrado só em bonus tunnel / Sea), então a estrada precisa
+   * preencher até a borda inferior pra não deixar gap vazio.
    */
   ROAD_TOP_Y: 604,
-  ROAD_HEIGHT: 84,
+  ROAD_HEIGHT: 116,
   /**
    * Quanto a câmera desce ao entrar no atalho subterrâneo (BONUS tunnel).
    * Parcial — vê surface no topo + cave embaixo simultaneamente.

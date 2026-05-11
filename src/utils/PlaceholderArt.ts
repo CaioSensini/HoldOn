@@ -7,6 +7,7 @@
  * o real primeiro, e cai no placeholder em caso de 404.
  */
 
+import { WORLD } from '../config';
 import { Colors } from '../theme/colors';
 
 type Scene = Phaser.Scene;
@@ -1565,25 +1566,34 @@ export function makeUITextures(scene: Scene): void {
  * exatamente a cor do bioma (white * tint = tint).
  */
 export function makeRoadTexture(scene: Scene): void {
-  makeTexture(scene, 'bg_road', 240, 84, (ctx) => {
+  // Altura proporcional ao ROAD_HEIGHT — mantém o desenho calibrado pra
+  // qualquer altura (3 fileiras pra 84px, 4 pra 116px). O bottom gradient
+  // mantém 9px no fim, independente da altura.
+  const W = 240;
+  const H = WORLD.ROAD_HEIGHT;
+  const stoneH = 22;
+  const rowGap = 3;
+  const topPad = 5;
+  const botPad = 9;
+  const usable = H - topPad - botPad;
+  const rowCount = Math.max(1, Math.floor((usable + rowGap) / (stoneH + rowGap)));
+
+  makeTexture(scene, 'bg_road', W, H, (ctx) => {
     // === Base: near-white (multiplicado pelo tint do bioma) ===
     ctx.fillStyle = '#e8e8e8';
-    ctx.fillRect(0, 0, 240, 84);
+    ctx.fillRect(0, 0, W, H);
 
     // === Edge superior: highlight forte (catches a luz) ===
-    const topGrad = ctx.createLinearGradient(0, 0, 0, 5);
+    const topGrad = ctx.createLinearGradient(0, 0, 0, topPad);
     topGrad.addColorStop(0, 'rgba(255,255,255,0.7)');
     topGrad.addColorStop(1, 'rgba(255,255,255,0.2)');
     ctx.fillStyle = topGrad;
-    ctx.fillRect(0, 0, 240, 5);
+    ctx.fillRect(0, 0, W, topPad);
 
-    // === Cobblestones — 3 fileiras com offset alternado ===
-    const startY = 6;
-    const stoneH = 22;
-    const rowGap = 3;
+    // === Cobblestones — fileiras com offset alternado ===
+    const startY = topPad + 1;
     const stoneW = 36;
     const stonePeriod = 40;
-    const rowCount = 3;
 
     for (let row = 0; row < rowCount; row++) {
       const rowY = startY + row * (stoneH + rowGap);
@@ -1625,17 +1635,18 @@ export function makeRoadTexture(scene: Scene): void {
       // Mortar entre fileiras (horizontal, dark)
       if (row < rowCount) {
         ctx.fillStyle = '#3a3530';
-        ctx.fillRect(0, rowY + stoneH, 240, rowGap);
+        ctx.fillRect(0, rowY + stoneH, W, rowGap);
       }
     }
 
     // === Bottom shadow gradient (profundidade do chão) ===
-    const botGrad = ctx.createLinearGradient(0, 75, 0, 84);
+    const botY = H - botPad;
+    const botGrad = ctx.createLinearGradient(0, botY, 0, H);
     botGrad.addColorStop(0, 'rgba(0,0,0,0)');
     botGrad.addColorStop(0.5, 'rgba(0,0,0,0.3)');
     botGrad.addColorStop(1, 'rgba(0,0,0,0.75)');
     ctx.fillStyle = botGrad;
-    ctx.fillRect(0, 75, 240, 9);
+    ctx.fillRect(0, botY, W, botPad);
 
     // === Cracks/desgaste sutis em algumas pedras ===
     ctx.fillStyle = 'rgba(60,60,60,0.55)';

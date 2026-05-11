@@ -806,8 +806,9 @@ function buildSeaEntryShip(scene: Phaser.Scene, container: Phaser.GameObjects.Co
 
   container.add([g, smoke, wave]);
 
+  // Throttle 120 ms — smoke/wave do navio são lentos, não precisam 17 fps.
   const animator = scene.time.addEvent({
-    delay: 60,
+    delay: 120,
     callback: () => {
       drawSmoke(scene.time.now);
       drawWave(scene.time.now);
@@ -1011,8 +1012,9 @@ function buildSeaExitSandbank(scene: Phaser.Scene, container: Phaser.GameObjects
 
   container.add([g, grass, arrowContainer]);
 
+  // Throttle 120 ms — smoke/wave do navio são lentos, não precisam 17 fps.
   const animator = scene.time.addEvent({
-    delay: 60,
+    delay: 120,
     callback: () => drawGrass(scene.time.now),
     loop: true
   });

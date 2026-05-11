@@ -62,9 +62,9 @@ function buildLavaPool(scene: Phaser.Scene, container: Phaser.GameObjects.Contai
   drawBubbles(0);
   container.add([g, bubbles]);
 
-  // Atualização contínua das bolhas (animation)
+  // Atualização contínua das bolhas — throttle 100 ms (10 fps de redraw).
   const updater = scene.time.addEvent({
-    delay: 50,
+    delay: 100,
     callback: () => drawBubbles(scene.time.now),
     loop: true
   });

@@ -101,8 +101,11 @@ function buildPlasmaField(scene: Phaser.Scene, container: Phaser.GameObjects.Con
   drawArcs(0);
   container.add([g, arcs]);
 
+  // Throttle: 100 ms = 10 fps de redraw — diferença visual desprezível,
+  // mas em 5+ obstáculos simultâneos economiza várias passes de path/fill
+  // por frame (gargalo principal no mobile).
   const updater = scene.time.addEvent({
-    delay: 30,
+    delay: 100,
     callback: () => drawArcs(scene.time.now),
     loop: true
   });
@@ -187,8 +190,9 @@ function buildForceFieldLow(scene: Phaser.Scene, container: Phaser.GameObjects.C
 
   container.add([g, fieldGfx]);
 
+  // Throttle 100 ms — ver comentário em plasma_field acima.
   const updater = scene.time.addEvent({
-    delay: 40,
+    delay: 100,
     callback: () => drawField(scene.time.now),
     loop: true
   });
@@ -488,8 +492,9 @@ function buildSatellite(scene: Phaser.Scene, container: Phaser.GameObjects.Conta
   sat.y = baseY;
   container.add([beam, sat]);
 
+  // Throttle 120 ms — flicker do beam é sutil, não precisa ser 20 fps.
   const updater = scene.time.addEvent({
-    delay: 50,
+    delay: 120,
     callback: () => drawBeam(scene.time.now, sat.y),
     loop: true
   });
