@@ -200,6 +200,12 @@ export class HUD {
       const remaining = nextMilestone - streak;
       const nextBonus = nextMilestone / 10;
       this.comboText.setText(`Combo: ${streak}   ${remaining}→+${nextBonus}`);
+      // Cor escala com a streak — feedback visual progressivo.
+      let color: number = Colors.accent.yellow;
+      if (streak >= 200) color = 0xff66ff; // legendary
+      else if (streak >= 100) color = Colors.accent.coral;
+      else if (streak >= 50) color = 0xff8a3a;
+      this.comboText.setColor(hex(color));
       this.scene.tweens.add({
         targets: this.comboText,
         scale: { from: 1.18, to: 1 },

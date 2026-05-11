@@ -481,7 +481,8 @@ export class GameScene extends Phaser.Scene {
     getServices().haptics.trigger('light');
     this.juice.flashScreen(0xffffff, 0.15, 80);
     this.juice.shake('light', 120);
-    this.juice.slowMo(0.4, 80);
+    // Pulse de slowMo mais curto e visível (0.5×80ms em vez do antigo 0.4×80)
+    this.juice.slowMo(0.5, 80);
     spawnFloatingText({
       scene: this,
       x,
@@ -490,6 +491,96 @@ export class GameScene extends Phaser.Scene {
       color: Colors.accent.coral,
       fontSize: 24
     });
+    // Camera punch: zoom in rápido + volta. Quase imperceptível mas dá
+    // sensação de "câmera reagindo" ao perigo passar de raspão.
+    try {
+      this.cameras.main.zoomTo(1.04, 80, 'Sine.easeOut');
+      this.time.delayedCall(160, () => {
+        try {
+          this.cameras.main.zoomTo(1.0, 200, 'Sine.easeIn');
+        } catch {
+          /* */
+        }
+      });
+    } catch {
+      /* */
+    }
+    this.spawnNearMissSwoosh(x, y);
+    this.spawnNearMissAura();
+  }
+
+  /**
+   * Linha diagonal amarela com núcleo branco passando pelo ponto do near miss.
+   * Fade em ~280ms. Garante feedback visual mesmo quando spark é discreto.
+   */
+  private spawnNearMissSwoosh(x: number, y: number): void {
+    try {
+      const len = 180;
+      const angle = -Math.PI / 4; // diagonal 45° subindo
+      const dx = Math.cos(angle) * len;
+      const dy = Math.sin(angle) * len;
+      const swoosh = this.add.graphics().setDepth(80);
+      // Glow amarelo externo
+      swoosh.lineStyle(8, Colors.accent.yellow, 0.6);
+      swoosh.beginPath();
+      swoosh.moveTo(x - dx, y - dy);
+      swoosh.lineTo(x + dx, y + dy);
+      swoosh.strokePath();
+      // Núcleo branco fino
+      swoosh.lineStyle(2, 0xffffff, 1);
+      swoosh.beginPath();
+      swoosh.moveTo(x - dx, y - dy);
+      swoosh.lineTo(x + dx, y + dy);
+      swoosh.strokePath();
+      this.tweens.add({
+        targets: swoosh,
+        alpha: 0,
+        duration: 280,
+        ease: 'Quad.easeOut',
+        onComplete: () => {
+          try {
+            swoosh.destroy();
+          } catch {
+            /* */
+          }
+        }
+      });
+    } catch {
+      /* */
+    }
+  }
+
+  /** Aura amarela pulsante ao redor do player — cresce e some em ~360ms. */
+  private spawnNearMissAura(): void {
+    try {
+      const px = this.player?.sprite.x ?? 0;
+      const py = this.player?.y ?? 0;
+      const aura = this.add.circle(px, py, 28, Colors.accent.yellow, 0.55).setDepth(45);
+      aura.setBlendMode(Phaser.BlendModes.ADD);
+      this.tweens.add({
+        targets: aura,
+        radius: 70,
+        alpha: 0,
+        duration: 360,
+        ease: 'Quad.easeOut',
+        onUpdate: () => {
+          // Acompanha o player enquanto o tween roda
+          if (this.player) {
+            aura.x = this.player.sprite.x;
+            aura.y = this.player.y;
+          }
+        },
+        onComplete: () => {
+          try {
+            aura.destroy();
+          } catch {
+            /* */
+          }
+        }
+      });
+    } catch {
+      /* */
+    }
   }
 
   /* -------- LOOP -------- */
@@ -1487,8 +1578,11 @@ export class GameScene extends Phaser.Scene {
     }
     try {
       if (kind === 'death') {
-        this.juice.shake('heavy', 380);
-        this.juice.flashScreen(Colors.accent.coral, 0.35, 280);
+        this.juice.shake('heavy', 400);
+        this.juice.flashScreen(Colors.accent.coral, 0.6, 220);
+        // Freeze frame dramático — pausa o tempo do mundo por 100ms para
+        // o impacto "registrar". JuiceManager.hitPause já lida com cleanup.
+        this.juice.hitPause(100);
       } else {
         this.juice.shake('medium', 200);
         this.juice.flashScreen(Colors.accent.cyan, 0.25, 200);
