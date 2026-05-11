@@ -95,7 +95,8 @@ export class BiomeManager {
     const subHeight = subBottom - subTop;
     this.subterraneanBg = this.scene.add
       .tileSprite(GAME_WIDTH / 2, subTop + subHeight / 2, GAME_WIDTH, subHeight, 'bg_subterranean')
-      .setDepth(-55); // atrás do ground (-46), na frente das camadas de bioma (-100..-70)
+      .setDepth(-55) // atrás do ground (-46), na frente das camadas de bioma (-100..-70)
+      .setVisible(false); // só revelado durante bonus tunnel / fase Sea
 
     for (let i = 0; i < 14; i++) {
       const x = (i / 14) * GAME_WIDTH + Math.random() * 60;
@@ -295,6 +296,16 @@ export class BiomeManager {
    * de baixo. Restaura ao sair. Duração casada com a pan da câmera (900ms)
    * com easing suave (Sine) pra ficar em sincronia visual.
    */
+  /** Revela o TileSprite do subsolo — usado durante bonus tunnel / fase Sea. */
+  showSubterranean(): void {
+    this.subterraneanBg?.setVisible(true);
+  }
+
+  /** Esconde o TileSprite do subsolo — gameplay normal não deve mostrá-lo. */
+  hideSubterranean(): void {
+    this.subterraneanBg?.setVisible(false);
+  }
+
   setSubterraneanView(active: boolean, durationMs = 900): void {
     if (!this.ground) return;
     const targetColor = active ? 0x2a1810 : this.current.groundColor;

@@ -53,7 +53,7 @@ export class RunDirector {
   private coinSpawner: CoinSpawner;
   private nextSegmentAt = 12;
   private lastSegment: SegmentId | null = null;
-  private nextBonusOfferAt = 850;
+  private nextBonusOfferAt = 3500;
   private gapVariant = 0;
 
   constructor(obstacleSpawner: ObstacleSpawner, coinSpawner: CoinSpawner) {
@@ -64,7 +64,7 @@ export class RunDirector {
   reset(startMeters = 0): void {
     this.nextSegmentAt = startMeters + 12;
     this.lastSegment = null;
-    this.nextBonusOfferAt = Math.max(850, startMeters + 650);
+    this.nextBonusOfferAt = Math.max(3500, startMeters + 2500);
     this.gapVariant = 0;
   }
 
@@ -74,7 +74,7 @@ export class RunDirector {
     segment.spawn({ meters: currentMeters, difficulty, biome, director: this });
     this.lastSegment = segment.id;
     this.nextSegmentAt = currentMeters + segment.lengthMeters * this.spacingFor(difficulty);
-    if (segment.id === 'bonus_offer') this.nextBonusOfferAt = currentMeters + randInt(950, 1350);
+    if (segment.id === 'bonus_offer') this.nextBonusOfferAt = currentMeters + randInt(4000, 6500);
   }
 
   private pickSegment(currentMeters: number, difficulty: number): SegmentDef {
@@ -248,9 +248,9 @@ const SEGMENTS: SegmentDef[] = [
   },
   {
     id: 'bonus_offer',
-    fromMeters: 1300,
+    fromMeters: 3500,
     lengthMeters: 72,
-    weight: 5,
+    weight: 1,
     spawn: ({ director, meters }) => {
       director.bonusHole(34, meters);
     }

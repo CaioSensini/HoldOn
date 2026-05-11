@@ -1,39 +1,48 @@
-import { EVENTS, SCORE } from '../config';
+import { EVENTS } from '../config';
 import { GameEventBus } from './EventSystem';
 
 /**
- * ComboSystem: combo de moedas. Cresce a cada moeda coletada,
- * reseta quando uma moeda sai da tela sem ser coletada.
+ * ComboSystem — versão "bônus crescente por sequência".
+ *
+ * Regra:
+ *   • Streak conta moedas consecutivas COLETADAS sem deixar nenhuma
+ *     escapar para fora da tela pela esquerda.
+ *   • A cada múltiplo de 10 moedas, ganha BÔNUS = tier (10→+1, 20→+2, ...).
+ *     Sem teto.
+ *   • Reset SÓ quando uma moeda passa pra esquerda sem ser coletada.
+ *   • Colidir com obstáculo, dano, power-up — NÃO resetam.
  */
 export class ComboSystem {
   private bus = GameEventBus.instance();
-  /** Multiplicador atual (1, 1.5, 2, ...). */
-  multiplier = 1.0;
-  /** Streak (número de moedas em sequência). */
   streak = 0;
 
   reset(): void {
-    if (this.multiplier !== 1 || this.streak !== 0) {
-      this.multiplier = 1;
+    if (this.streak !== 0) {
       this.streak = 0;
-      this.bus.emit(EVENTS.COMBO_CHANGED, this.multiplier);
+      this.bus.emit(EVENTS.COMBO_CHANGED, this.streak);
     }
   }
 
-  registerCollect(): void {
+  /** Retorna bônus (>0) se cruzou múltiplo de 10. */
+  registerCollect(): number {
     this.streak += 1;
-    // Cresce a cada 3 moedas
-    if (this.streak % 3 === 0) {
-      this.multiplier = Math.min(SCORE.COIN_COMBO_CAP, this.multiplier + SCORE.COIN_COMBO_STEP);
-      this.bus.emit(EVENTS.COMBO_CHANGED, this.multiplier);
+    this.bus.emit(EVENTS.COMBO_CHANGED, this.streak);
+
+    if (this.streak % 10 === 0) {
+      const tier = this.streak / 10;
+      const bonus = tier;
+      this.bus.emit(EVENTS.COMBO_BONUS, { tier, bonus, streak: this.streak });
+      return bonus;
     }
+    return 0;
   }
 
+  /** Chamado quando uma moeda saiu pela esquerda. ÚNICA condição de reset. */
   registerMiss(): void {
-    if (this.multiplier > 1 || this.streak > 0) {
-      this.multiplier = 1;
+    if (this.streak > 0) {
       this.streak = 0;
-      this.bus.emit(EVENTS.COMBO_CHANGED, this.multiplier);
+      this.bus.emit(EVENTS.COMBO_CHANGED, this.streak);
+      this.bus.emit(EVENTS.COMBO_BROKEN);
     }
   }
 }

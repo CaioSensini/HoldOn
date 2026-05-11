@@ -17,7 +17,7 @@ import {
   type TrapDef,
   type TrapInstance
 } from '../../data/TrapDefs';
-import { airHitbox, GROUND_Y, groundHitbox, wallHitbox } from './common';
+import { airHitbox, ceilingCurtainHitbox, GROUND_Y, groundHitbox, wallHitbox } from './common';
 
 /* -------- ground: flame_jet -------- */
 
@@ -196,7 +196,7 @@ function buildGoldenBlade(scene: Phaser.Scene, container: Phaser.GameObjects.Con
   });
 
   return {
-    hitboxes: [airHitbox(w, h, centerY)],
+    hitboxes: [airHitbox(w, h, centerY), ceilingCurtainHitbox(w, centerY - h / 2)],
     triggerHitboxes: [],
     cleanup: () => pulse.stop()
   };

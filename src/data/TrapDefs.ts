@@ -61,6 +61,10 @@ export interface TrapInstance {
    * (release() faz removeAll() automaticamente).
    */
   cleanup?: () => void;
+  /** HP inicial para traps com `softHit: true` (default 1). */
+  hp?: number;
+  /** Callback disparado a cada hit não-fatal — recebe o HP restante. */
+  onHit?: (remainingHp: number) => void;
 }
 
 export interface TrapDef {
@@ -84,6 +88,11 @@ export interface TrapDef {
    * traps mais complexas (gap, dynamic) só depois de aquecimento.
    */
   fromMeters?: number;
+  /**
+   * Quando true, colidir NÃO mata o player — em vez disso a trap "leva
+   * dano" (decrementa hp). Estilo porquinho do Jetpack Joyride.
+   */
+  softHit?: boolean;
   /**
    * Builds the visual + hitboxes diretamente no `container` recebido.
    * Retorna `TrapInstance` com hitboxes pra runtime usar em colisões.

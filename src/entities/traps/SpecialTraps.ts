@@ -1057,6 +1057,177 @@ function buildSeaExitSandbank(scene: Phaser.Scene, container: Phaser.GameObjects
   };
 }
 
+/* ============================ COIN SAFE (Porquinho) ============================ */
+
+/**
+ * Cofre estilo Jetpack Joyride. Visual: porquinho rosa com fenda dourada,
+ * carinha sorridente. HP=3 — cada hit do player faz rachadura aparecer e
+ * cospe algumas moedas. No 3º hit, explode em chuva dourada.
+ */
+function buildCoinSafe(scene: Phaser.Scene, container: Phaser.GameObjects.Container): TrapInstance {
+  const w = 110;
+  const h = 90;
+  const centerY = 380;
+
+  const body = scene.add.graphics();
+
+  // Sombra
+  body.fillStyle(0x000000, 0.35);
+  body.fillEllipse(8, centerY + h / 2 + 4, w + 24, 12);
+
+  // Corpo rosa
+  body.fillStyle(0xff8aa8, 1);
+  body.fillEllipse(0, centerY, w, h);
+  body.fillStyle(0xffb8c8, 1);
+  body.fillEllipse(-8, centerY - 18, w * 0.7, h * 0.45);
+  body.fillStyle(0xc06080, 0.55);
+  body.fillEllipse(4, centerY + 14, w * 0.85, h * 0.5);
+
+  // Patinhas
+  body.fillStyle(0xc06080, 1);
+  body.fillRoundedRect(-w / 2 + 18, centerY + h / 2 - 4, 14, 12, 3);
+  body.fillRoundedRect(w / 2 - 32, centerY + h / 2 - 4, 14, 12, 3);
+
+  // Orelhas
+  body.fillStyle(0xff8aa8, 1);
+  body.beginPath();
+  body.moveTo(-w / 2 + 14, centerY - h / 2 + 6);
+  body.lineTo(-w / 2 + 22, centerY - h / 2 - 8);
+  body.lineTo(-w / 2 + 30, centerY - h / 2 + 10);
+  body.closePath();
+  body.fillPath();
+  body.beginPath();
+  body.moveTo(w / 2 - 14, centerY - h / 2 + 6);
+  body.lineTo(w / 2 - 22, centerY - h / 2 - 8);
+  body.lineTo(w / 2 - 30, centerY - h / 2 + 10);
+  body.closePath();
+  body.fillPath();
+
+  // Focinho
+  body.fillStyle(0xffd0dc, 1);
+  body.fillEllipse(-w / 2 + 18, centerY + 4, 18, 14);
+  body.fillStyle(0x6a3a48, 1);
+  body.fillCircle(-w / 2 + 14, centerY + 2, 1.6);
+  body.fillCircle(-w / 2 + 22, centerY + 2, 1.6);
+
+  // Olhos
+  body.fillStyle(0xffffff, 1);
+  body.fillCircle(-w / 2 + 30, centerY - 14, 6);
+  body.fillCircle(-w / 2 + 46, centerY - 14, 6);
+  body.fillStyle(0x14080a, 1);
+  body.fillCircle(-w / 2 + 31, centerY - 13, 3.2);
+  body.fillCircle(-w / 2 + 47, centerY - 13, 3.2);
+  body.fillStyle(0xffffff, 1);
+  body.fillCircle(-w / 2 + 32, centerY - 14, 1.2);
+  body.fillCircle(-w / 2 + 48, centerY - 14, 1.2);
+
+  // Sorriso
+  body.lineStyle(2, 0x6a3a48, 1);
+  body.beginPath();
+  body.arc(-w / 2 + 30, centerY + 12, 4, 0, Math.PI);
+  body.strokePath();
+
+  // Rabinho
+  body.lineStyle(3, 0xff8aa8, 1);
+  body.beginPath();
+  body.arc(w / 2 - 8, centerY - 6, 6, 0, Math.PI * 1.6);
+  body.strokePath();
+
+  // Fenda dourada
+  body.fillStyle(0xa07a3a, 1);
+  body.fillRoundedRect(-12, centerY - h / 2 + 8, 24, 6, 2);
+  body.fillStyle(0xffd23f, 1);
+  body.fillRoundedRect(-10, centerY - h / 2 + 9, 20, 4, 1);
+  body.fillStyle(0x14080a, 0.8);
+  body.fillRect(-7, centerY - h / 2 + 10, 14, 2);
+
+  // Highlight
+  body.fillStyle(0xffffff, 0.4);
+  body.fillEllipse(-12, centerY - 24, 16, 8);
+
+  container.add(body);
+
+  // Rachaduras (escondidas, reveladas a cada hit)
+  const cracks: Phaser.GameObjects.Graphics[] = [];
+  for (let i = 0; i < 3; i++) {
+    const crack = scene.add.graphics().setVisible(false);
+    crack.lineStyle(2, 0x6a3a48, 0.85);
+    crack.beginPath();
+    if (i === 0) {
+      crack.moveTo(-w / 2 + 30, centerY - 8);
+      crack.lineTo(-w / 2 + 26, centerY + 10);
+      crack.lineTo(-w / 2 + 34, centerY + 24);
+    } else if (i === 1) {
+      crack.moveTo(w / 4, centerY - 22);
+      crack.lineTo(w / 4 + 4, centerY - 4);
+      crack.lineTo(w / 4 - 4, centerY + 14);
+    } else {
+      crack.moveTo(-w / 4, centerY + h / 2 - 14);
+      crack.lineTo(-w / 4 + 8, centerY + h / 2 - 24);
+      crack.lineTo(-w / 4 - 4, centerY + h / 2 - 30);
+    }
+    crack.strokePath();
+    container.add(crack);
+    cracks.push(crack);
+  }
+
+  // Pulso idle (sobe/desce levemente)
+  const idleTween = scene.tweens.add({
+    targets: body,
+    y: { from: 0, to: -4 },
+    duration: 760,
+    yoyo: true,
+    repeat: -1,
+    ease: 'Sine.easeInOut'
+  });
+
+  // Glow dourado pulsante atrás do corpo
+  const glow = scene.add.graphics();
+  glow.fillStyle(0xffd23f, 0.18);
+  glow.fillCircle(0, centerY, w * 0.85);
+  container.add(glow);
+  container.bringToTop(body);
+  for (const c of cracks) container.bringToTop(c);
+  const glowTween = scene.tweens.add({
+    targets: glow,
+    alpha: { from: 0.12, to: 0.32 },
+    duration: 800,
+    yoyo: true,
+    repeat: -1,
+    ease: 'Sine.easeInOut'
+  });
+
+  return {
+    hitboxes: [{ x: -w / 2 + 6, y: centerY - h / 2 + 6, w: w - 12, h: h - 12 }],
+    triggerHitboxes: [],
+    hp: 3,
+    onHit: (remainingHp: number) => {
+      const idx = 3 - remainingHp - 1;
+      if (idx >= 0 && idx < cracks.length) {
+        cracks[idx].setVisible(true);
+        cracks[idx].alpha = 0;
+        scene.tweens.add({
+          targets: cracks[idx],
+          alpha: 1,
+          duration: 180,
+          ease: 'Quad.easeOut'
+        });
+      }
+      scene.tweens.add({
+        targets: body,
+        scaleX: { from: 1.18, to: 1 },
+        scaleY: { from: 0.82, to: 1 },
+        duration: 220,
+        ease: 'Back.easeOut'
+      });
+    },
+    cleanup: () => {
+      idleTween.stop();
+      glowTween.stop();
+    }
+  };
+}
+
 /* ============================ REGISTRY ============================ */
 
 export const SPECIAL_TRAP_DEFS: TrapDef[] = [
@@ -1096,6 +1267,14 @@ export const SPECIAL_TRAP_DEFS: TrapDef[] = [
     category: 'special',
     biome: 'any',
     build: buildSeaExitSandbank
+  },
+  {
+    id: 'coin_safe',
+    category: 'special',
+    biome: 'any',
+    softHit: true,
+    fromMeters: 1200,
+    build: buildCoinSafe
   }
 ];
 

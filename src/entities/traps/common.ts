@@ -4,7 +4,7 @@
  */
 
 import type Phaser from 'phaser';
-import { WORLD } from '../../config';
+import { PLAYER, WORLD } from '../../config';
 import type { TrapHitbox } from '../../data/TrapDefs';
 
 /** Y do chão jogável (coincide com PLAYER.Y_MAX). */
@@ -55,6 +55,25 @@ export function airHitbox(width: number, height: number, centerY: number): TrapH
     y: centerY - height / 2,
     w: width,
     h: height
+  };
+}
+
+/**
+ * Cortina vertical do teto até o topo visual do obstáculo, cobrindo toda a
+ * largura do corpo. Usada em obstáculos `low` para fechar o gap entre o teto
+ * jogável (PLAYER.Y_MIN) e o topo do corpo — sem ela, o player pode passar
+ * grudado no teto por cima da armadilha.
+ *
+ * Deve ser acrescentada ao lado do `airHitbox` do corpo, não substituí-lo.
+ */
+export function ceilingCurtainHitbox(bodyWidth: number, bodyTopY: number): TrapHitbox {
+  const top = PLAYER.Y_MIN - 4;
+  const h = Math.max(0, bodyTopY - top);
+  return {
+    x: -bodyWidth / 2,
+    y: top,
+    w: bodyWidth,
+    h
   };
 }
 

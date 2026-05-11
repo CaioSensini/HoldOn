@@ -51,7 +51,7 @@ export class ObstacleSpawner {
   private nextSpawnAtMeters = 4;
   /** Última categoria spawnada — usado pra evitar repetição. */
   private lastCategory: TrapCategory | null = null;
-  private nextBonusAllowedAt = 900;
+  private nextBonusAllowedAt = 3500;
 
   /**
    * Offset Y aplicado a TODOS os spawns. Mudado pelo GameScene quando
@@ -207,9 +207,14 @@ export class ObstacleSpawner {
     this.spawn('sea_exit_sandbank', x);
   }
 
+  /** Spawn do cofre/porquinho — chamado periodicamente pelo GameScene. */
+  spawnCoinSafe(x = GAME_WIDTH + 200): void {
+    this.spawn('coin_safe', x);
+  }
+
   spawnBonusHole(x = GAME_WIDTH + 80, currentMeters = 0): void {
     this.spawn('bonus_hole', x);
-    this.nextBonusAllowedAt = currentMeters + randInt(900, 1300);
+    this.nextBonusAllowedAt = currentMeters + randInt(4000, 6500);
   }
 
   /** Throttle pro RunDirector saber se pode oferecer bonus_hole. */
@@ -218,7 +223,7 @@ export class ObstacleSpawner {
   }
 
   setBonusCooldown(currentMeters: number): void {
-    this.nextBonusAllowedAt = currentMeters + randInt(900, 1300);
+    this.nextBonusAllowedAt = currentMeters + randInt(4000, 6500);
   }
 
   clearActive(): void {

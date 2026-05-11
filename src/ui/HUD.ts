@@ -88,7 +88,7 @@ export class HUD {
     this.comboText = this.scene.add
       .text(pillX + 6, pillY + pillH + 8, '', Type.caption({
         fontSize: '15px',
-        color: hex(Colors.accent.green),
+        color: hex(Colors.accent.yellow),
         fontStyle: '600'
       }))
       .setOrigin(0, 0)
@@ -190,9 +190,61 @@ export class HUD {
       });
     }) as (...args: unknown[]) => void);
 
-    this.bus.onScoped(this.scene, EVENTS.COMBO_CHANGED, ((m: number) => {
+    this.bus.onScoped(this.scene, EVENTS.COMBO_CHANGED, ((streak: number) => {
       if (!this.comboText.active) return;
-      this.comboText.setText(m > 1 ? `Combo × ${m.toFixed(1)}` : '');
+      if (streak <= 0) {
+        this.comboText.setText('');
+        return;
+      }
+      const nextMilestone = Math.ceil((streak + 1) / 10) * 10;
+      const remaining = nextMilestone - streak;
+      const nextBonus = nextMilestone / 10;
+      this.comboText.setText(`Combo: ${streak}   ${remaining}→+${nextBonus}`);
+      this.scene.tweens.add({
+        targets: this.comboText,
+        scale: { from: 1.18, to: 1 },
+        duration: 200,
+        ease: 'Back.easeOut'
+      });
+    }) as (...args: unknown[]) => void);
+
+    this.bus.onScoped(this.scene, EVENTS.COMBO_BONUS, ((data: { tier: number; bonus: number; streak: number }) => {
+      if (!this.comboText.active) return;
+      this.scene.tweens.add({
+        targets: this.comboText,
+        scale: { from: 1.6, to: 1 },
+        duration: 380,
+        ease: 'Back.easeOut'
+      });
+      const original = this.comboText.style.color;
+      this.comboText.setColor(hex(Colors.accent.coral));
+      this.scene.time.delayedCall(360, () => {
+        if (this.comboText.active) this.comboText.setColor(original);
+      });
+      void data;
+    }) as (...args: unknown[]) => void);
+
+    this.bus.onScoped(this.scene, EVENTS.COMBO_BROKEN, (() => {
+      if (!this.comboText.active) return;
+      const oldText = this.comboText.text;
+      this.comboText.setText(oldText.length > 0 ? 'Combo perdido!' : '');
+      this.comboText.setColor(hex(Colors.text.secondary));
+      this.scene.tweens.add({
+        targets: this.comboText,
+        x: { from: this.comboText.x - 4, to: this.comboText.x + 4 },
+        duration: 60,
+        yoyo: true,
+        repeat: 3,
+        ease: 'Sine.easeInOut',
+        onComplete: () => {
+          if (!this.comboText.active) return;
+          this.scene.time.delayedCall(700, () => {
+            if (!this.comboText.active) return;
+            this.comboText.setText('');
+            this.comboText.setColor(hex(Colors.accent.yellow));
+          });
+        }
+      });
     }) as (...args: unknown[]) => void);
 
     this.bus.onScoped(this.scene, EVENTS.POWERUP_COLLECTED, ((id: PowerUpId, durationMs: number) => {

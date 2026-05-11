@@ -45,6 +45,13 @@ export class Obstacle implements Poolable {
   nearMissCounted = false;
   triggered = false;
 
+  /** Soft-hit hp (cofre/porquinho). 0 = sem soft-hit. */
+  hp = 0;
+  maxHp = 0;
+  onSoftHit: ((remainingHp: number) => void) | null = null;
+  /** Lockout em ms (scene.time.now) para evitar múltiplos hits no mesmo frame. */
+  softHitLockUntilMs = 0;
+
   /**
    * Quando true, não scrolla com o mundo (usado em transições onde
    * obstáculos precisam ficar parados durante pan da câmera).
@@ -87,6 +94,29 @@ export class Obstacle implements Poolable {
     this.instance = def.build(this.scene, this.container, options);
     this.hitboxes = this.instance.hitboxes;
     this.triggerHitboxes = this.instance.triggerHitboxes;
+
+    this.hp = this.instance.hp ?? (def.softHit ? 1 : 0);
+    this.maxHp = this.hp;
+    this.onSoftHit = this.instance.onHit ?? null;
+    this.softHitLockUntilMs = 0;
+  }
+
+  /**
+   * Aplica um hit "soft" (não-fatal). Retorna true quando hp chega a 0
+   * (trap deve ser destruído pelo caller).
+   */
+  applySoftHit(): boolean {
+    if (!this.def?.softHit || this.hp <= 0) return false;
+    this.hp -= 1;
+    if (this.hp > 0) {
+      try {
+        this.onSoftHit?.(this.hp);
+      } catch {
+        /* */
+      }
+      return false;
+    }
+    return true;
   }
 
   /** Atualiza posição (mundo rola pra esquerda) + delega update do trap. */
@@ -178,6 +208,10 @@ export class Obstacle implements Poolable {
     this.triggerHitboxes = [];
     this.def = null;
     this.trapId = '';
+    this.hp = 0;
+    this.maxHp = 0;
+    this.onSoftHit = null;
+    this.softHitLockUntilMs = 0;
   }
 
   /** Destrói completamente — usado em pool.clear(). */

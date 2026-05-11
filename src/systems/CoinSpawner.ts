@@ -171,6 +171,11 @@ export class CoinSpawner {
     this.pool.release(c);
   }
 
+  /** Spawn de UMA moeda em (x, y) — usado pelo cofre/porquinho. */
+  spawnSingleAt(x: number, y: number, biome: BiomeDef): void {
+    this.spawnCoin(x, y, rollCoinTier(biome));
+  }
+
   shutdown(): void {
     this.pool.clear();
   }

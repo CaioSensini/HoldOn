@@ -102,6 +102,8 @@ export class GameScene extends Phaser.Scene {
   private seaExitGateSpawned = false;
   private descendingToSea = false;
   private ascendingFromSea = false;
+  /** Próxima distância (m) onde o cofre/porquinho pode aparecer. */
+  private nextCoinSafeAt = 1200;
   private tunnelDecor: Phaser.GameObjects.Container | null = null;
   private tunnelFlowLines: Phaser.GameObjects.Rectangle[] = [];
   private gameOverTransitionStarted = false;
@@ -173,6 +175,7 @@ export class GameScene extends Phaser.Scene {
     this.seaExitGateSpawned = false;
     this.descendingToSea = false;
     this.ascendingFromSea = false;
+    this.nextCoinSafeAt = (devStart ?? 0) + 1200;
     this.currentPhaseYOffset = 0;
     this.targetPhaseYOffset = 0;
     if (this.phaseTransitionTween) {
@@ -246,7 +249,10 @@ export class GameScene extends Phaser.Scene {
       if (devStart >= 18000) this.ceilingHoleSpawned = true;
 
       // Se começa em Sea, ativa overlay de oceano imediatamente
-      if (startBiome.id === 'sea') this.biomeManager.setOceanView(true, 1);
+      if (startBiome.id === 'sea') {
+        this.biomeManager.setOceanView(true, 1);
+        this.biomeManager.showSubterranean();
+      }
     }
 
     this.hud = new HUD(this, () => this.togglePause());
@@ -493,7 +499,8 @@ export class GameScene extends Phaser.Scene {
       WORLD.BASE_SPEED,
       WORLD.MAX_SPEED
     );
-    this.worldSpeed = baseSpeed * this.speedMultiplier * this.bonusSpeedMultiplier;
+    const proneSlow = this.player?.isProne ? WORLD.PRONE_SPEED_MULTIPLIER : 1;
+    this.worldSpeed = baseSpeed * this.speedMultiplier * this.bonusSpeedMultiplier * proneSlow;
 
     const dx = this.worldSpeed * dt;
     this.distance += dx * 0.1;
@@ -540,6 +547,17 @@ export class GameScene extends Phaser.Scene {
       this.obstacleSpawner.clearActive();
       this.runDirector.reset(this.distance + 600);
       this.obstacleSpawner.spawnSeaExitSandbank();
+    }
+
+    // Spawn do COFRE/PORQUINHO — surpresa rara estilo Jetpack Joyride.
+    if (
+      !this.inBonusTunnel &&
+      !gateActive &&
+      !this.ascendingToSpace &&
+      this.distance >= this.nextCoinSafeAt
+    ) {
+      this.obstacleSpawner.spawnCoinSafe();
+      this.nextCoinSafeAt = this.distance + 1200 + Math.floor(Math.random() * 800);
     }
 
     this.obstacleSpawner.step(dx, _time);
@@ -596,6 +614,7 @@ export class GameScene extends Phaser.Scene {
     this.player.setBonusTunnel(true);
     this.obstacleSpawner.clearActiveExcept(source);
     this.biomeManager.setSubterraneanView(true);
+    this.biomeManager.showSubterranean();
 
     // Detecta o modo: SEGURANDO = controlado (mantém o dedo no comando),
     // SOLTO = cinemático (queda livre + dive head-first).
@@ -751,6 +770,7 @@ export class GameScene extends Phaser.Scene {
 
     // Restaura tom verde do chão (estrada volta ao normal — saiu da cave).
     this.biomeManager.setSubterraneanView(false);
+    this.biomeManager.hideSubterranean();
 
     // O pipe_exit NÃO congela: scrolla com o mundo como qualquer outro
     // obstáculo. Tudo continua se movendo pra esquerda — sem dissonância.
@@ -921,6 +941,14 @@ export class GameScene extends Phaser.Scene {
         return;
       }
 
+      // === SOFT HIT (cofre/porquinho): bate, sai moeda, NÃO mata ===
+      if (o.def.softHit) {
+        if (this.intersects(hb, o) && o.alive) {
+          this.handleCoinSafeHit(o);
+        }
+        return;
+      }
+
       this.nearMissDetector.check(hb, o);
 
       // === ROCKET: destrói tudo no caminho ===
@@ -955,6 +983,85 @@ export class GameScene extends Phaser.Scene {
     });
 
     if (hitObstacle) this.handleHit(hitObstacle);
+  }
+
+  /**
+   * Cofre/porquinho: cada hit não-fatal, no último explode em chuva dourada.
+   * Sai moedas, feedback áudio/haptic/juice, mas player não morre.
+   */
+  private handleCoinSafeHit(o: Obstacle): void {
+    if (this.time.now < o.softHitLockUntilMs) return;
+    o.softHitLockUntilMs = this.time.now + 80;
+
+    const x = o.worldX();
+    const y = o.container.y + 380; // centerY hardcoded no buildCoinSafe
+    const destroyed = o.applySoftHit();
+
+    try {
+      ParticleEffects.spark(this, x, y, 8);
+      AudioSystem.instance().playCoin(o.maxHp - o.hp);
+      getServices().haptics.trigger('medium');
+      this.juice.shake('light', 100);
+    } catch {
+      /* */
+    }
+
+    if (!destroyed) {
+      this.spawnCoinsBurst(x, y, 4);
+      spawnFloatingText({
+        scene: this,
+        x,
+        y: y - 40,
+        text: `+4`,
+        color: Colors.accent.yellow,
+        fontSize: 20,
+        rise: 50
+      });
+      return;
+    }
+
+    // Hit final: bônus direto + chuva grande
+    const directReward = 12;
+    this.coinsCollected += directReward;
+    this.state.addCoins(directReward, { deferSave: true });
+    this.bus.emit(EVENTS.COIN_COLLECTED, this.state.get().coins);
+
+    spawnFloatingText({
+      scene: this,
+      x,
+      y: y - 50,
+      text: `COFRE +${directReward}!`,
+      color: Colors.accent.yellow,
+      fontSize: 28,
+      rise: 80
+    });
+
+    this.spawnCoinsBurst(x, y, 14);
+
+    try {
+      AudioSystem.instance().playPowerUp();
+      getServices().haptics.trigger('heavy');
+      this.juice.flashScreen(Colors.accent.yellow, 0.4, 320);
+      this.juice.shake('medium', 280);
+      this.juice.hitPause(60);
+      ParticleEffects.coinPop(this, x, y, Colors.accent.yellow);
+    } catch {
+      /* */
+    }
+
+    o.smash(() => this.obstacleSpawner.releaseObstacle(o));
+  }
+
+  /** Burst de moedas radial — usado pelo cofre em cada hit + explosão. */
+  private spawnCoinsBurst(x: number, y: number, count: number): void {
+    const biome = biomeForDistance(this.distance);
+    for (let i = 0; i < count; i++) {
+      const angle = -Math.PI * 0.7 + (i / Math.max(1, count - 1)) * Math.PI * 0.4;
+      const dist = 60 + Math.random() * 80;
+      const cx = x + Math.cos(angle) * dist;
+      const cy = y + Math.sin(angle) * dist;
+      this.coinSpawner.spawnSingleAt(cx, cy, biome);
+    }
   }
 
   /**
@@ -1135,6 +1242,7 @@ export class GameScene extends Phaser.Scene {
 
     // Ativa visual oceânico (bolhas, light shafts, tint azul)
     this.biomeManager.setOceanView(true);
+    this.biomeManager.showSubterranean();
 
     // Tween de fase (handleBiomeChange skip 'sea' — chamamos manualmente)
     this.transitionPhaseYOffset(WORLD.SEA_PHASE_OFFSET, source);
@@ -1196,6 +1304,7 @@ export class GameScene extends Phaser.Scene {
     this.biomeManager.updateForDistance(this.distance);
 
     this.biomeManager.setOceanView(false);
+    this.biomeManager.hideSubterranean();
 
     this.transitionPhaseYOffset(0, source);
 
@@ -1457,11 +1566,20 @@ export class GameScene extends Phaser.Scene {
     if (!c.alive) return;
     const tier = c.tier;
     const has2x = this.activeEffects.has('coins2x');
-    const baseValue = c.baseValue * (has2x ? 2 : 1) * this.coinMult * this.comboSystem.multiplier;
+    // Sem multiplicador de combo — agora é bônus fixo a cada 10 moedas
+    const baseValue = c.baseValue * (has2x ? 2 : 1) * this.coinMult;
     const value = Math.round(baseValue);
     this.coinsCollected += value;
     this.state.addCoins(value, { deferSave: true });
-    this.comboSystem.registerCollect();
+
+    // Combo: bônus crescente a cada múltiplo de 10
+    const bonus = this.comboSystem.registerCollect();
+    if (bonus > 0) {
+      this.coinsCollected += bonus;
+      this.state.addCoins(bonus, { deferSave: true });
+      this.spawnComboBonusFx(c.sprite.x, c.sprite.y, bonus, this.comboSystem.streak);
+    }
+
     AudioSystem.instance().playCoin(this.comboSystem.streak);
     getServices().haptics.trigger('light');
     ParticleEffects.coinPop(this, c.sprite.x, c.sprite.y, this.coinTint(tier));
@@ -1476,6 +1594,28 @@ export class GameScene extends Phaser.Scene {
     });
     c.collect(() => this.coinSpawner.releaseCoin(c));
     this.bus.emit(EVENTS.COIN_COLLECTED, this.state.get().coins);
+  }
+
+  private spawnComboBonusFx(x: number, y: number, bonus: number, streak: number): void {
+    const intensity = Math.min(1.5, 0.6 + bonus * 0.15);
+    spawnFloatingText({
+      scene: this,
+      x,
+      y: y - 30,
+      text: `COMBO ×${streak}  +${bonus}`,
+      color: Colors.accent.yellow,
+      fontSize: bonus >= 5 ? Math.round(22 + bonus * 3) : Math.round(22 + bonus * 2),
+      rise: 70
+    });
+    try {
+      ParticleEffects.coinPop(this, x, y, Colors.accent.yellow);
+      this.juice.flashScreen(Colors.accent.yellow, 0.25 * intensity, 220);
+      this.juice.shake('light', 120);
+      AudioSystem.instance().playPowerUp();
+      getServices().haptics.trigger('medium');
+    } catch {
+      /* feedback opcional */
+    }
   }
 
   private coinTint(tier: string): number {

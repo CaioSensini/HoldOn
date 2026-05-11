@@ -92,7 +92,12 @@ export const WORLD = {
    * Player + obstáculos + moedas são todos shiftados pelo offset.
    */
   SEA_PHASE_OFFSET: 720,
-  SPACE_PHASE_OFFSET: -720
+  SPACE_PHASE_OFFSET: -720,
+  /**
+   * Multiplicador aplicado ao worldSpeed quando o player está se arrastando
+   * (state prone). 0.8 = 20% mais lento — recompensa por slide preciso.
+   */
+  PRONE_SPEED_MULTIPLIER: 0.8
 } as const;
 
 /** Score & combos. */
@@ -107,10 +112,10 @@ export const SCORE = {
   NEAR_MISS_STEP: 0.1,
   NEAR_MISS_CAP: 3.0,
   /** Tempo (ms) para resetar near miss multiplier sem novo near miss. */
-  NEAR_MISS_DECAY_MS: 4000,
-  /** Combo de moedas. */
-  COIN_COMBO_STEP: 0.5,
-  COIN_COMBO_CAP: 5.0
+  NEAR_MISS_DECAY_MS: 4000
+  // Constantes antigas COIN_COMBO_STEP/COIN_COMBO_CAP removidas — o
+  // sistema de combo agora dá BÔNUS DE MOEDAS a cada múltiplo de 10
+  // (1, 2, 3, ...), sem multiplicador de score.
 } as const;
 
 /** Spawner de obstáculos — distâncias progressivas (em metros). */
@@ -174,7 +179,12 @@ export const EVENTS = {
   DISTANCE_UPDATE: 'distance_update',
   SCORE_UPDATE: 'score_update',
   BIOME_CHANGED: 'biome_changed',
+  /** Streak atual (número de moedas consecutivas coletadas). */
   COMBO_CHANGED: 'combo_changed',
+  /** Disparado a cada múltiplo de 10 moedas: { tier, bonus, streak }. */
+  COMBO_BONUS: 'combo_bonus',
+  /** Disparado quando o combo quebra (moeda escapou pela esquerda). */
+  COMBO_BROKEN: 'combo_broken',
   NEAR_MISS_MULTIPLIER: 'near_miss_multiplier',
   OBSTACLE_BROKEN: 'obstacle_broken'
 } as const;
