@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 120" width="360" height="120">
+  <defs>
+    <filter id="logoshadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="0" flood-color="#1a1d2e" flood-opacity="1"></feDropShadow>
+    </filter>
+  </defs>
+  <g filter="url(#logoshadow)" font-family="Fredoka, sans-serif" font-weight="700" paint-order="stroke fill">
+    <text x="20" y="86" font-size="84" fill="#ffd23f" stroke="#1a1d2e" stroke-width="8" stroke-linejoin="round">FL</text>
+    <g transform="translate(140, 38)">
+      <circle cx="36" cy="36" r="34" fill="#ffd23f" stroke="#1a1d2e" stroke-width="8"></circle>
+      <circle cx="36" cy="36" r="22" fill="none" stroke="#1a1d2e" stroke-width="5" opacity="0.5"></circle>
+      <text x="36" y="48" text-anchor="middle" font-size="36" fill="#1a1d2e" stroke="none">$</text>
+    </g>
+    <text x="220" y="86" font-size="84" fill="#ffd23f" stroke="#1a1d2e" stroke-width="8" stroke-linejoin="round">AT</text>
+  </g>
+</svg>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Float — Home Screen</title>
+  <link rel="stylesheet" href="home.css" />
+
+  <!-- Resources referenced as strings in JSX — must be lifted for the standalone bundler -->
+  <meta name="ext-resource-dependency" content="assets/icons/coin.svg"      data-resource-id="icon_coin" />
+  <meta name="ext-resource-dependency" content="assets/icons/trophy.svg"    data-resource-id="icon_trophy" />
+  <meta name="ext-resource-dependency" content="assets/icons/gift.svg"      data-resource-id="icon_gift" />
+  <meta name="ext-resource-dependency" content="assets/icons/magnet.svg"    data-resource-id="icon_magnet" />
+  <meta name="ext-resource-dependency" content="assets/icons/shop.svg"      data-resource-id="icon_shop" />
+  <meta name="ext-resource-dependency" content="assets/icons/backpack.svg"  data-resource-id="icon_backpack" />
+  <meta name="ext-resource-dependency" content="assets/icons/checklist.svg" data-resource-id="icon_checklist" />
+  <meta name="ext-resource-dependency" content="assets/icons/podium.svg"    data-resource-id="icon_podium" />
+  <meta name="ext-resource-dependency" content="assets/icons/settings.svg"  data-resource-id="icon_settings" />
+
+  <template id="__bundler_thumbnail" data-bg-color="#1f3a8a">
+    <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+      <!-- sky -->
+      <rect width="1200" height="800" fill="#1f3a8a"/>
+      <!-- mountains -->
+      <path d="M0 540 L 200 380 L 340 470 L 520 320 L 700 460 L 880 360 L 1040 470 L 1200 400 L 1200 800 L 0 800 Z" fill="#2d5a32" stroke="#1a1d2e" stroke-width="6"/>
+      <!-- ground -->
+      <path d="M0 660 C 300 600, 900 720, 1200 640 L 1200 800 L 0 800 Z" fill="#2a4d24" stroke="#1a1d2e" stroke-width="6"/>
+      <!-- rock character -->
+      <g transform="translate(600 420)">
+        <ellipse cx="0" cy="0" rx="120" ry="110" fill="#727275" stroke="#1a1d2e" stroke-width="8"/>
+        <ellipse cx="-40" cy="-10" rx="18" ry="22" fill="#fff" stroke="#1a1d2e" stroke-width="5"/>
+        <ellipse cx="40" cy="-10" rx="18" ry="22" fill="#fff" stroke="#1a1d2e" stroke-width="5"/>
+        <circle cx="-38" cy="-8" r="9" fill="#1a1d2e"/>
+        <circle cx="42" cy="-8" r="9" fill="#1a1d2e"/>
+      </g>
+    </svg>
+  </template>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="backdrop.jsx"></script>
+  <script type="text/babel" src="home.jsx"></script>
+</body>
+</html>
